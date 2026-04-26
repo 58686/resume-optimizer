@@ -1,0 +1,118 @@
+services:
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: resume-optimizer-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: resume_optimizer
+      POSTGRES_PASSWORD: resume_optimizer_dev
+      POSTGRES_DB: resume_optimizer
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U resume_optimizer -d resume_optimizer"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: resume-optimizer-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # ── One-time migration ───────────────────────────────────────────────────────
+  migrate:
+    build: .
+    container_name: resume-optimizer-migrate
+    command: ["migrate"]
+    environment:
+      DATABASE_URL: postgresql://resume_optimizer:resume_optimizer_dev@postgres:5432/resume_optimizer?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # ── Application ──────────────────────────────────────────────────────────────
+  web:
+    build: .
+    container_name: resume-optimizer-web
+    command: ["web"]
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      # Infrastructure（自动注入，无需修改）
+      DATABASE_URL: postgresql://resume_optimizer:resume_optimizer_dev@postgres:5432/resume_optimizer?schema=public
+      REDIS_URL: redis://redis:6379
+
+      # ── 按需修改以下变量 ──────────────────────────────────────────────────
+      # 部署后的访问地址（默认本机）
+      APP_ORIGIN: "${APP_ORIGIN:-http://localhost:3000}"
+
+      # 加密密钥，生产环境请换成随机字符串（openssl rand -hex 32）
+      ANALYSIS_TASK_ENCRYPTION_KEY: "${ANALYSIS_TASK_ENCRYPTION_KEY:-default-dev-key-change-in-production}"
+
+      # 邮件：file 模式直接把邮件写到 storage/email-outbox，无需 SMTP
+      EMAIL_DELIVERY_MODE: "${EMAIL_DELIVERY_MODE:-file}"
+      EMAIL_FROM: "${EMAIL_FROM:-no-reply@resume-optimizer.local}"
+      EMAIL_OUTBOX_DIR: "storage/email-outbox"
+
+      # Token / Session 有效期
+      EMAIL_VERIFICATION_TOKEN_TTL_HOURS: "24"
+      PASSWORD_RESET_TOKEN_TTL_MINUTES: "30"
+      SESSION_DURATION_DAYS: "30"
+      SESSION_REFRESH_THRESHOLD_HOURS: "72"
+
+      # 任务队列
+      ANALYSIS_TASK_TIMEOUT_MS: "300000"
+      ANALYSIS_TASK_MAX_ATTEMPTS: "3"
+      ANALYSIS_TASK_WORKER_CONCURRENCY: "2"
+      ANALYSIS_QUEUE_NAME: "analysis-tasks"
+
+      # 文件存储（local = 挂载 volume，无需 S3）
+      STORAGE_DRIVER: "${STORAGE_DRIVER:-local}"
+      LOCAL_STORAGE_DIR: "storage"
+
+    volumes:
+      - app-storage:/app/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    container_name: resume-optimizer-worker
+    command: ["worker"]
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://resume_optimizer:resume_optimizer_dev@postgres:5432/resume_optimizer?schema=public
+      REDIS_URL: redis://redis:6379
+      ANALYSIS_TASK_ENCRYPTION_KEY: "${ANALYSIS_TASK_ENCRYPTION_KEY:-default-dev-key-change-in-production}"
+      ANALYSIS_TASK_TIMEOUT_MS: "300000"
+      ANALYSIS_TASK_MAX_ATTEMPTS: "3"
+      ANALYSIS_TASK_WORKER_CONCURRENCY: "2"
+      ANALYSIS_QUEUE_NAME: "analysis-tasks"
+      STORAGE_DRIVER: "${STORAGE_DRIVER:-local}"
+      LOCAL_STORAGE_DIR: "storage"
+    volumes:
+      - app-storage:/app/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:
+  app-storage:

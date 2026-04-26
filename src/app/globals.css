@@ -1,0 +1,325 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root, [data-theme="aurora"] {
+  color-scheme: dark;
+
+  /* ── Surface ── */
+  --surface-bg: #0d0f1a;
+  --surface-card: rgba(16, 18, 32, 0.5);
+  --surface-card-hover: rgba(22, 25, 44, 0.65);
+  --surface-border: rgba(255, 255, 255, 0.08);
+  --surface-glass: rgba(13, 15, 26, 0.55);
+  --surface-glass-border: rgba(255, 255, 255, 0.1);
+
+  /* ── Text ── */
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+
+  /* ── Brand (Aurora Blue Default) ── */
+  --brand-primary: #ffffff;
+  --brand-accent: #22d3ee;
+  --brand-gradient-start: #3b82f6;
+  --brand-gradient-mid: #6366f1;
+  --brand-gradient-end: #8b5cf6;
+  --brand-glow: rgba(99, 102, 241, 0.5);
+  --brand-glow-soft: rgba(99, 102, 241, 0.2);
+}
+
+[data-theme="cyberpunk"] {
+  --surface-bg: #110a18;
+  --surface-glass: rgba(17, 10, 24, 0.55);
+  --brand-accent: #f472b6;
+  --brand-gradient-start: #ec4899;
+  --brand-gradient-mid: #a855f7;
+  --brand-gradient-end: #ef4444;
+  --brand-glow: rgba(236, 72, 153, 0.55);
+  --brand-glow-soft: rgba(236, 72, 153, 0.2);
+}
+
+[data-theme="emerald"] {
+  --surface-bg: #081610;
+  --surface-glass: rgba(8, 22, 16, 0.55);
+  --brand-accent: #34d399;
+  --brand-gradient-start: #10b981;
+  --brand-gradient-mid: #059669;
+  --brand-gradient-end: #0ea5e9;
+  --brand-glow: rgba(16, 185, 129, 0.55);
+  --brand-glow-soft: rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="sunset"] {
+  --surface-bg: #160d06;
+  --surface-glass: rgba(22, 13, 6, 0.55);
+  --brand-accent: #fbbf24;
+  --brand-gradient-start: #f59e0b;
+  --brand-gradient-mid: #ea580c;
+  --brand-gradient-end: #e11d48;
+  --brand-glow: rgba(245, 158, 11, 0.55);
+  --brand-glow-soft: rgba(245, 158, 11, 0.2);
+}
+
+:root {
+  /* ── Shadows ── */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 30px 80px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 30px var(--brand-glow);
+  --shadow-card-hover: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 20px var(--brand-glow);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--surface-bg);
+  color: var(--text-primary);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Dynamic Aurora Background ── */
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% -10%, var(--brand-glow-soft) 0%, transparent 60%);
+}
+
+.aurora-bg::before,
+.aurora-bg::after {
+  content: "";
+  position: absolute;
+  width: 900px;
+  height: 900px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.45;
+  animation: float 10s infinite ease-in-out alternate;
+}
+
+.aurora-bg::before {
+  top: -200px;
+  left: -200px;
+  background: radial-gradient(circle, var(--brand-gradient-start), transparent 65%);
+}
+
+.aurora-bg::after {
+  bottom: -200px;
+  right: -200px;
+  background: radial-gradient(circle, var(--brand-gradient-end), transparent 65%);
+  animation-delay: -5s;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: var(--brand-glow-soft);
+  color: #fff;
+}
+
+/* ────────────────────────────────────────────
+   Animation utilities
+   ──────────────────────────────────────────── */
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out both;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out both;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.4s ease-out both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.35s ease-out both;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.8s infinite linear;
+}
+
+/* Stagger delays */
+.delay-1 { animation-delay: 0.05s; }
+.delay-2 { animation-delay: 0.10s; }
+.delay-3 { animation-delay: 0.15s; }
+.delay-4 { animation-delay: 0.20s; }
+.delay-5 { animation-delay: 0.25s; }
+.delay-6 { animation-delay: 0.30s; }
+
+/* ────────────────────────────────────────────
+   Reusable component classes
+   ──────────────────────────────────────────── */
+
+/* Glass panel */
+.glass-panel {
+  background: var(--surface-glass);
+  backdrop-filter: blur(16px) saturate(1.8);
+  -webkit-backdrop-filter: blur(16px) saturate(1.8);
+  border: 1px solid var(--surface-glass-border);
+}
+
+/* Card with hover lift */
+.card-hover {
+  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--brand-glow);
+}
+
+/* Brand gradient text */
+.text-brand-gradient {
+  background: linear-gradient(135deg, var(--brand-gradient-start), var(--brand-gradient-mid), var(--brand-gradient-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Brand gradient background */
+.bg-brand-gradient {
+  background: linear-gradient(135deg, var(--brand-gradient-start), var(--brand-gradient-mid), var(--brand-gradient-end));
+}
+
+/* Button with glow */
+.btn-primary {
+  background: linear-gradient(135deg, var(--brand-gradient-start), var(--brand-gradient-mid), var(--brand-gradient-end));
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  transition: all 0.28s ease;
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--brand-gradient-end), var(--brand-gradient-mid), var(--brand-gradient-start));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+.btn-primary span, .btn-primary div {
+  position: relative;
+  z-index: 2;
+}
+.btn-primary:hover {
+  box-shadow: 0 0 24px var(--brand-glow);
+  border-color: transparent;
+}
+.btn-primary:hover::before {
+  opacity: 1;
+}
+.btn-primary:active {
+  transform: scale(0.98);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.btn-primary:disabled:hover {
+  box-shadow: none;
+}
+.btn-primary:disabled::before {
+  opacity: 0;
+}
+
+/* Secondary button */
+.btn-secondary {
+  border: 1px solid var(--surface-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  transition: all 0.24s ease;
+}
+.btn-secondary:hover {
+  border-color: var(--brand-glow);
+  background: var(--brand-glow-soft);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Input focus glow */
+.input-glow {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-border);
+  color: var(--text-primary);
+  transition: border-color 0.24s ease, box-shadow 0.24s ease, background-color 0.24s ease;
+}
+.input-glow:focus {
+  border-color: var(--brand-accent);
+  box-shadow: 0 0 0 3px var(--brand-glow-soft);
+  background: rgba(255, 255, 255, 0.06);
+  outline: none;
+}
+
+/* Accent left-border stripe */
+.accent-stripe {
+  position: relative;
+  overflow: hidden;
+}
+.accent-stripe::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--brand-gradient-start), var(--brand-gradient-end));
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+.accent-stripe:hover::before {
+  opacity: 1;
+}
+
+/* Score glow ring */
+.score-glow {
+  filter: drop-shadow(0 0 8px var(--brand-glow));
+}
+
+/* Collapsible section transition */
+.collapsible-content {
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out both;
+}
+
+/* Progress bar */
+@keyframes progressFill {
+  from { width: 0%; }
+}
+.progress-bar-fill {
+  animation: progressFill 1s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Print styles */
+@media print {
+  header, .btn-primary, .btn-secondary, nav { display: none !important; }
+  body { background: white !important; color: black !important; }
+  section { break-inside: avoid; }
+}
+
