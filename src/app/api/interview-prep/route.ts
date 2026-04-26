@@ -113,17 +113,22 @@ export async function POST(request: Request) {
         providerLabel: string;
         baseURL?: string;
         defaultHeaders?: Record<string, string>;
+        maxTokens?: number;
       };
     };
 
     const prompt = buildInterviewPrepPrompt(body.resumeText, body.jobDescription);
+
+    const config = buildOpenAICompatibleConfig(providerConfig);
+    // 35-50 questions with Chinese answers needs ~8000+ output tokens
+    config.maxTokens = 10000;
 
     const result = await generateStructuredWithOpenAICompatible(
       "You are a precise interview question generator. Output only structured data.",
       prompt,
       interviewPrepResultSchema,
       "interview_prep_questions",
-      buildOpenAICompatibleConfig(providerConfig)
+      config
     );
 
     return applyRateLimitHeaders(apiSuccess(result), rateLimit);
@@ -132,8 +137,19 @@ export async function POST(request: Request) {
       return applyRateLimitHeaders(apiValidationError(error, "请求参数不合法。"), rateLimit);
     }
 
+    const message = error instanceof Error ? error.message : "";
+    const isStructuredOutputError =
+      message.includes("json_schema") ||
+      message.includes("response_format") ||
+      message.includes("output_parsed") ||
+      message.includes("parsed");
+
+    const userMessage = isStructuredOutputError
+      ? "当前 AI 配置不支持结构化输出，请在 AI 配置页面将协议切换为「Chat Completions」或换用 OpenAI / OpenRouter 供应商。"
+      : getErrorMessage(error, "生成面试题失败，请稍后再试。");
+
     return applyRateLimitHeaders(
-      apiError(getErrorMessage(error, "生成面试题失败。"), 500, "INTERVIEW_PREP_FAILED"),
+      apiError(userMessage, 500, "INTERVIEW_PREP_FAILED"),
       rateLimit
     );
   }

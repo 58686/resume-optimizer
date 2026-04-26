@@ -13,6 +13,7 @@ type OpenAICompatibleConfig = {
   apiKeyMode: AIApiKeyMode;
   providerLabel: string;
   defaultHeaders?: Record<string, string>;
+  maxTokens?: number;
 };
 
 const MODEL_REQUEST_TIMEOUT_MS = env.ANALYSIS_TASK_TIMEOUT_MS;
@@ -79,7 +80,8 @@ async function generateWithResponsesApi<T>(
     input: createMessages(systemPrompt, userPrompt),
     text: {
       format: zodTextFormat(schema, schemaName)
-    }
+    },
+    ...(config.maxTokens ? { max_output_tokens: config.maxTokens } : {})
   });
 
   if (!response.output_parsed) {
@@ -100,7 +102,8 @@ async function generateWithChatCompletionsApi<T>(
   const completion = await client.beta.chat.completions.parse({
     model: config.model,
     messages: createMessages(systemPrompt, userPrompt),
-    response_format: zodResponseFormat(schema, schemaName)
+    response_format: zodResponseFormat(schema, schemaName),
+    ...(config.maxTokens ? { max_tokens: config.maxTokens } : {})
   });
 
   const parsed = completion.choices[0]?.message?.parsed;
