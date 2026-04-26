@@ -1,220 +1,209 @@
-# AI Resume Optimizer
+# AI 简历优化器
 
-`Next.js + Prisma + PostgreSQL + OpenAI-compatible providers` 的简历优化工具。
+基于 AI 的简历分析与面试准备工具，支持关键词匹配评分、优化建议、面试题生成、版本对比等功能。
 
-## 当前能力
+## 功能特性
 
-- 邮箱 / 密码注册登录
+### 简历分析
+- 上传简历（PDF / DOCX / TXT / MD）并提取文本
+- 对照目标职位描述，AI 打分（0–100）并给出详细分析
+- 命中关键词 / 缺失关键词 / 优化建议 / 项目改写 / 总结改写
+- 异步任务队列处理，实时进度可视化（8 个阶段）
+
+### 关键词改写示例
+- 针对每个缺失关键词，AI 生成可直接套用的简历描述句
+- 一键复制，粘贴到对应工作经历
+
+### 面试准备
+- 生成 35–50 道个性化面试题，覆盖六大维度：
+  - HR 面试 / 技术基础 / 项目深挖 / 行为面试 / 系统设计 / 开放性问题
+- 附参考答案与回答要点
+- 按分类 / 难度筛选，支持导出 Markdown / Word / PDF
+- 支持从职位页面 URL 自动抓取 JD
+
+### 历史与版本对比
+- 历史分析记录，支持搜索 / 排序 / 标星
+- 选择两条记录对比：分数变化、关键词已补齐 / 新增 / 仍缺失 / 新缺口
+
+### 账户与安全
+- 邮箱 / 密码注册登录，HttpOnly Cookie 会话
 - 邮箱验证、忘记密码、重置密码
-- HttpOnly Cookie 会话
-- 自定义兼容供应商支持 `Responses API` / `Chat Completions` 协议切换
-- 简历上传与文本提取（`pdf` / `docx` / `txt` / `md`）
-- 异步分析任务、任务列表、任务详情、失败重试
-- 结果页展示、Markdown 导出、求职邮件摘要复制、浏览器打印 PDF
-- 用户级 Provider Profile 保存
-- 分析任务配置加密快照
-- PostgreSQL 本地开发环境
+- CSRF 防护，Redis 限流
+- 分析任务配置加密存储
 
-## 主要目录
+### AI 供应商
+支持自由切换，每个用户可保存多套配置：
 
-- `src/app/page.tsx`：登录后仪表盘首页
-- `src/app/upload/page.tsx`：上传与发起分析
-- `src/app/tasks/page.tsx`：任务列表
-- `src/app/history/page.tsx`：历史结果
-- `src/app/result/[id]/page.tsx`：结果详情
-- `src/app/verify-email/page.tsx`：邮箱验证页
-- `src/app/forgot-password/page.tsx`：忘记密码页
-- `src/app/reset-password/page.tsx`：重置密码页
-- `src/app/api/*`：接口路由
-- `src/lib/*`：认证、限流、存储、AI、加密、安全能力
-- `prisma/schema.prisma`：数据模型
+| 供应商 | 说明 |
+|--------|------|
+| OpenAI | GPT-4.1 / GPT-4o 等 |
+| OpenRouter | 聚合多模型路由 |
+| Google Gemini | Gemini 2.5 Flash 等 |
+| Anthropic | Claude 系列 |
+| NVIDIA NIM | Llama 等开源模型 |
+| 自定义兼容接口 | 任何 OpenAI 兼容端点 |
 
-## 本地启动
+## 技术栈
 
-1. 安装依赖
+| 层次 | 技术 |
+|------|------|
+| 前端 / 后端 | Next.js 15 (App Router) |
+| 数据库 | PostgreSQL + Prisma ORM |
+| 任务队列 | BullMQ + Redis |
+| 文件存储 | 本地目录 或 S3 兼容存储 |
+| AI 调用 | OpenAI SDK（兼容多供应商） |
+| 样式 | Tailwind CSS，多主题支持 |
+| 部署 | Docker Compose |
+
+## 快速部署（Docker）
+
+无需预先配置环境变量，AI API Key 在页面内配置。
 
 ```bash
+git clone https://github.com/58686/resume-optimizer.git
+cd resume-optimizer
+docker compose up -d --build
+```
+
+打开 `http://localhost:3000`，注册账号后在 **AI 配置** 页面填入你的 API Key 即可使用。
+
+### 生产环境部署
+
+只需在启动前设置两个关键变量：
+
+```bash
+APP_ORIGIN=https://your-domain.com \
+ANALYSIS_TASK_ENCRYPTION_KEY=$(openssl rand -hex 32) \
+docker compose up -d --build
+```
+
+### Docker 服务说明
+
+| 服务 | 作用 |
+|------|------|
+| `postgres` | PostgreSQL 数据库 |
+| `redis` | 任务队列 + 限流 |
+| `migrate` | 启动时自动执行数据库迁移（运行一次） |
+| `web` | Next.js Web 服务（端口 3000） |
+| `worker` | BullMQ 后台分析 Worker |
+
+数据通过 Docker Volume 持久化，重启不丢失。
+
+## 本地开发
+
+### 前置要求
+
+- Node.js 20+
+- Docker（用于启动 PostgreSQL 和 Redis）
+
+### 启动步骤
+
+```bash
+# 1. 安装依赖
 npm install
-```
 
-2. 复制环境变量
+# 2. 配置环境变量
+copy .env.example .env   # Windows
+# cp .env.example .env   # macOS / Linux
 
-```bash
-copy .env.example .env
-```
-
-3. 启动本地 PostgreSQL
-
-```bash
+# 3. 启动 PostgreSQL 和 Redis
 npm run db:up
-```
 
-4. 初始化数据库
-
-```bash
+# 4. 初始化数据库
 npx prisma migrate dev
-npx prisma generate
-```
 
-5. 启动开发服务
-
-```bash
+# 5. 启动 Web 服务
 npm run dev
-```
 
-## 关键环境变量
-
-- `DATABASE_URL`
-- `APP_ORIGIN`
-- `EMAIL_DELIVERY_MODE`
-- `EMAIL_FROM`
-- `EMAIL_OUTBOX_DIR`
-- `EMAIL_VERIFICATION_TOKEN_TTL_HOURS`
-- `PASSWORD_RESET_TOKEN_TTL_MINUTES`
-- `AI_PROVIDER`
-- `OPENAI_API_KEY`
-- `OPENROUTER_API_KEY`
-- `AI_COMPATIBLE_API_KEY`
-- `ANALYSIS_TASK_ENCRYPTION_KEY`
-- `ANALYSIS_TASK_TIMEOUT_MS`
-- `ANALYSIS_TASK_MAX_ATTEMPTS`
-- `TASK_GUARD_SECRET`
-- `STORAGE_DRIVER`
-- `LOCAL_STORAGE_DIR`
-
-## 邮件能力
-
-- 当前默认使用本地 outbox 投递邮件：`EMAIL_DELIVERY_MODE=file`
-- 邮件会写入 `storage/email-outbox`
-- 适合本地开发验证注册、邮箱验证、重置密码链路
-- 生产环境可在后续接入 SMTP / SES / Resend 等真实邮件服务
-
-## 限流策略
-
-当前为单进程内存限流，后续可升级到 Redis / Upstash。
-
-- `POST /api/auth/login`：按 IP 每分钟最多 `10` 次
-- `POST /api/auth/password/forgot`：按 IP 每 `15` 分钟最多 `5` 次
-- `POST /api/auth/password/reset`：按 IP 每小时最多 `10` 次
-- `POST /api/upload`：按用户每分钟最多 `5` 次
-- `POST /api/analyze`：按用户每小时最多 `10` 次
-- `POST /api/auth/verify-email/send`：按用户每小时最多 `3` 次
-
-超限后返回：
-
-- HTTP `429`
-- `Retry-After`
-- `X-RateLimit-Limit`
-- `X-RateLimit-Remaining`
-- `X-RateLimit-Reset`
-
-## 任务超时守卫
-
-- 任务进入 `processing` 时会生成独立的 `processingToken`
-- 超过 `ANALYSIS_TASK_TIMEOUT_MS` 会被判定为超时
-- 超时任务会自动重新排队，最多尝试 `ANALYSIS_TASK_MAX_ATTEMPTS` 次
-- 达到最大尝试次数后，任务会被标记为 `failed`
-- 旧执行实例晚到回写时，不会覆盖新尝试结果
-
-可供外部 Cron 调用的恢复接口：
-
-- `GET /api/internal/tasks/recover`
-- `POST /api/internal/tasks/recover`
-
-鉴权方式：
-
-- `Authorization: Bearer <TASK_GUARD_SECRET>`
-- `x-task-guard-secret: <TASK_GUARD_SECRET>`
-
-如果 `TASK_GUARD_SECRET` 未配置，则仅在非生产环境允许直接访问。
-
-## CSRF 防护
-
-- 浏览器写接口会校验 `Origin` / `Referer`
-- 校验目标为当前请求源，以及可选的 `APP_ORIGIN`
-- 建议在反向代理、CDN、生产域名场景下显式配置 `APP_ORIGIN`
-- 已保护登录、注册、退出登录、上传、分析、任务重试、Provider 配置保存 / 删除、结果删除、验证邮箱、忘记密码、重置密码
-- 缺少 `Origin` 和 `Referer` 时返回 HTTP `403`，错误码为 `CSRF_ORIGIN_REQUIRED`
-- 来源不匹配时返回 HTTP `403`，错误码为 `CSRF_ORIGIN_INVALID`
-
-## 常用命令
-
-```bash
-npm run lint
-npm run typecheck
-npm run build
-npm run db:logs
-npm run db:down
-```
-
-## 数据库迁移说明
-
-- 旧 SQLite 数据备份：`prisma/sqlite-backup/`
-- 旧 SQLite migrations 归档：`prisma/migrations_sqlite_archive/`
-- 当前开发数据库：PostgreSQL
-
-## 当前限制
-
-- 任务执行仍是进程内异步执行，不是独立 Worker
-- 已有任务超时守卫，但生产环境仍建议升级到独立 Worker / Queue
-- 文件存储仍是本地目录，不是对象存储
-- 部分第三方兼容供应商即使切到 `chat_completions`，也可能仍不支持 `json_schema` 结构化输出
-- 真实邮件供应商、SSE 流式进度、S3 / MinIO 仍未完成
-
-## 下一步建议
-
-按优先级建议继续做：
-
-1. Worker / Queue 化任务处理
-2. SSE 流式分析进度
-3. S3 / MinIO 对象存储
-4. 真实邮件供应商接入
-
-## 2026-04 基础设施升级
-
-- 分析任务已切到 `BullMQ + Redis` 队列
-- 新增独立 Worker 启动命令：`npm run worker`
-- API 限流已切到 Redis，不再是单进程内存限流
-- 文件存储已升级为双驱动：`local` / `s3`
-- 会话已支持滑动过期
-
-## 本地开发更新
-
-1. 启动基础依赖：
-
-```bash
-npm run db:up
-```
-
-2. 启动 Web：
-
-```bash
-npm run dev
-```
-
-3. 启动分析 Worker：
-
-```bash
+# 6. 启动分析 Worker（新开一个终端）
 npm run worker
 ```
 
-## 新增关键环境变量
+访问 `http://localhost:3000`
 
-- `REDIS_URL`
-- `ANALYSIS_QUEUE_NAME`
-- `ANALYSIS_TASK_WORKER_CONCURRENCY`
-- `SESSION_DURATION_DAYS`
-- `SESSION_REFRESH_THRESHOLD_HOURS`
-- `S3_ENDPOINT`
-- `S3_REGION`
-- `S3_BUCKET`
-- `S3_ACCESS_KEY_ID`
-- `S3_SECRET_ACCESS_KEY`
-- `S3_FORCE_PATH_STYLE`
+### 常用命令
 
-## 当前剩余高优先级
+```bash
+npm run dev          # 启动开发服务
+npm run worker       # 启动分析 Worker
+npm run build        # 构建生产版本
+npm run lint         # ESLint 检查
+npm run typecheck    # TypeScript 类型检查
+npm run db:up        # 启动 Docker 基础服务
+npm run db:down      # 停止 Docker 基础服务
+npm run db:logs      # 查看数据库日志
+```
 
-- 结果页顶部操作区与建议优先级
-- 上传页步骤条与 JD 大输入框
-- 侧边栏导航 / 面包屑
-- SSE 状态流
+## 环境变量说明
+
+完整示例见 `.env.example`。
+
+### 基础配置
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `DATABASE_URL` | PostgreSQL 连接字符串 | — |
+| `REDIS_URL` | Redis 连接地址 | `redis://127.0.0.1:6379` |
+| `APP_ORIGIN` | 应用访问地址（用于 CSRF 和邮件链接） | `http://localhost:3000` |
+| `ANALYSIS_TASK_ENCRYPTION_KEY` | 任务配置加密密钥（生产环境必改） | — |
+
+### 邮件配置
+
+| 变量 | 说明 |
+|------|------|
+| `EMAIL_DELIVERY_MODE` | `file`（写入本地文件）或 `smtp` |
+| `EMAIL_FROM` | 发件人地址 |
+| `EMAIL_OUTBOX_DIR` | file 模式的输出目录（默认 `storage/email-outbox`） |
+
+开发时使用 `file` 模式，邮件内容会写入 `storage/email-outbox`，直接打开文件即可查看验证链接。
+
+### 文件存储
+
+| 变量 | 说明 |
+|------|------|
+| `STORAGE_DRIVER` | `local` 或 `s3` |
+| `LOCAL_STORAGE_DIR` | 本地存储目录（默认 `storage`） |
+| `S3_ENDPOINT` | S3 兼容端点（MinIO 等） |
+| `S3_BUCKET` | 存储桶名称 |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | 访问凭证 |
+
+## 限流策略
+
+基于 Redis，超限返回 HTTP 429 并附带 `Retry-After` 响应头。
+
+| 接口 | 限制 |
+|------|------|
+| 登录 | 每 IP 每分钟 10 次 |
+| 忘记密码 | 每 IP 每 15 分钟 5 次 |
+| 重置密码 | 每 IP 每小时 10 次 |
+| 文件上传 | 每用户每分钟 5 次 |
+| 发起分析 | 每用户每小时 10 次 |
+| 关键词改写示例 | 每用户每小时 20 次 |
+| 发送验证邮件 | 每用户每小时 3 次 |
+
+## 项目结构
+
+```
+src/
+├── app/                  # Next.js 页面和 API 路由
+│   ├── api/              # 后端接口
+│   ├── compare/          # 版本对比页
+│   ├── history/          # 历史记录页
+│   ├── interview-prep/   # 面试准备页
+│   ├── result/[id]/      # 分析结果页
+│   ├── tasks/            # 任务列表页
+│   └── upload/           # 上传页
+├── components/           # React 组件
+├── lib/                  # 核心逻辑（AI、认证、限流、存储等）
+├── types/                # TypeScript 类型定义
+└── worker/               # BullMQ 分析 Worker
+prisma/
+├── schema.prisma         # 数据模型
+└── migrations/           # 数据库迁移文件
+docker/
+└── entrypoint.sh         # Docker 启动脚本
+```
+
+## License
+
+MIT
