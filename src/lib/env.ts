@@ -146,6 +146,7 @@ export const env = {
 export function resolveProviderConfig(input: AIProviderConfigInput): AIProviderConfig {
   const protocol = input.protocol ?? getDefaultProtocolForProvider(input.provider);
   const defaultApiKeyMode = getDefaultApiKeyModeForProvider(input.provider);
+  const proxy = normalizeOptional(input.proxy);
 
   switch (input.provider) {
     case "openrouter": {
@@ -167,7 +168,8 @@ export function resolveProviderConfig(input: AIProviderConfigInput): AIProviderC
         model: model ?? getDefaultModel("openrouter"),
         baseURL: baseURL ?? getDefaultBaseURL("openrouter"),
         siteUrl,
-        appName
+        appName,
+        ...(proxy ? { proxy } : {})
       };
     }
 
@@ -190,7 +192,8 @@ export function resolveProviderConfig(input: AIProviderConfigInput): AIProviderC
         apiKeyMode,
         apiKey,
         model: model ?? getDefaultModel("compatible"),
-        baseURL
+        baseURL,
+        ...(proxy ? { proxy } : {})
       };
     }
 
@@ -209,7 +212,8 @@ export function resolveProviderConfig(input: AIProviderConfigInput): AIProviderC
         apiKeyMode: defaultApiKeyMode,
         apiKey,
         model: model ?? getDefaultModel("nvidia"),
-        baseURL: baseURL ?? getDefaultBaseURL("nvidia")
+        baseURL: baseURL ?? getDefaultBaseURL("nvidia"),
+        ...(proxy ? { proxy } : {})
       };
     }
 
@@ -228,7 +232,8 @@ export function resolveProviderConfig(input: AIProviderConfigInput): AIProviderC
         apiKeyMode: defaultApiKeyMode,
         apiKey,
         model: model ?? getDefaultModel("gemini"),
-        baseURL: baseURL ?? getDefaultBaseURL("gemini")
+        baseURL: baseURL ?? getDefaultBaseURL("gemini"),
+        ...(proxy ? { proxy } : {})
       };
     }
 
@@ -247,7 +252,8 @@ export function resolveProviderConfig(input: AIProviderConfigInput): AIProviderC
         apiKeyMode: defaultApiKeyMode,
         apiKey,
         model: model ?? getDefaultModel("anthropic"),
-        baseURL: baseURL ?? getDefaultBaseURL("anthropic")
+        baseURL: baseURL ?? getDefaultBaseURL("anthropic"),
+        ...(proxy ? { proxy } : {})
       };
     }
 
@@ -265,7 +271,8 @@ export function resolveProviderConfig(input: AIProviderConfigInput): AIProviderC
         protocol,
         apiKeyMode: defaultApiKeyMode,
         apiKey,
-        model: model ?? getDefaultModel("openai")
+        model: model ?? getDefaultModel("openai"),
+        ...(proxy ? { proxy } : {})
       };
     }
   }

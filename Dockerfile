@@ -17,7 +17,7 @@ RUN npx prisma generate
 
 # Build Next.js (skips type-check for speed; run typecheck in CI separately)
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN npm run build && mkdir -p /app/public
 
 # ── Stage 3: Runtime image ─────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
@@ -31,7 +31,8 @@ RUN apk add --no-cache libc6-compat
 
 # Copy built Next.js output
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public 2>/dev/null || true
+RUN mkdir -p ./public
+COPY --from=builder /app/public ./public
 
 # Copy runtime dependencies
 COPY --from=builder /app/node_modules ./node_modules

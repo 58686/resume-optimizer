@@ -83,7 +83,8 @@ export default async function TaskEditPage({
               model: task.model,
               baseURL: snapshot?.baseURL ?? defaults.baseURL,
               siteUrl: snapshot?.siteUrl ?? defaults.siteUrl,
-              appName: snapshot?.appName ?? defaults.appName
+              appName: snapshot?.appName ?? defaults.appName,
+              proxy: snapshot?.proxy ?? defaults.proxy
             }
           }}
         />

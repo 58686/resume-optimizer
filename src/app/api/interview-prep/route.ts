@@ -20,7 +20,8 @@ const providerConfigSchema = z.object({
   model: z.string().trim().max(200).optional(),
   baseURL: z.string().trim().max(500).optional(),
   siteUrl: z.string().trim().max(500).optional(),
-  appName: z.string().trim().max(100).optional()
+  appName: z.string().trim().max(100).optional(),
+  proxy: z.string().trim().max(500).optional()
 });
 
 const bodySchema = z
@@ -93,6 +94,7 @@ export async function POST(request: Request) {
         providerLabel: pc.provider
       };
       if (pc.baseURL) base.baseURL = pc.baseURL;
+      if (pc.proxy) base.proxy = pc.proxy;
       if ("siteUrl" in pc && pc.siteUrl) {
         base.defaultHeaders = {
           ...(base.defaultHeaders as Record<string, string> | undefined),
@@ -112,6 +114,7 @@ export async function POST(request: Request) {
         apiKeyMode: "bearer" | "api_key_header" | "x_api_key_header";
         providerLabel: string;
         baseURL?: string;
+        proxy?: string;
         defaultHeaders?: Record<string, string>;
         maxTokens?: number;
       };
@@ -133,11 +136,13 @@ export async function POST(request: Request) {
 
     return applyRateLimitHeaders(apiSuccess(result), rateLimit);
   } catch (error) {
+    console.error("[interview-prep] generation failed:", error);
+
     if (error instanceof z.ZodError) {
       return applyRateLimitHeaders(apiValidationError(error, "请求参数不合法。"), rateLimit);
     }
 
-    const message = error instanceof Error ? error.message : "";
+    const message = error instanceof Error ? error.message : String(error);
     const isStructuredOutputError =
       message.includes("json_schema") ||
       message.includes("response_format") ||
@@ -146,7 +151,7 @@ export async function POST(request: Request) {
 
     const userMessage = isStructuredOutputError
       ? "当前 AI 配置不支持结构化输出，请在 AI 配置页面将协议切换为「Chat Completions」或换用 OpenAI / OpenRouter 供应商。"
-      : getErrorMessage(error, "生成面试题失败，请稍后再试。");
+      : message || "生成面试题失败，请稍后再试。";
 
     return applyRateLimitHeaders(
       apiError(userMessage, 500, "INTERVIEW_PREP_FAILED"),

@@ -18,7 +18,8 @@ const updateBodySchema = z.object({
   model: z.string().trim().max(200, "模型名称过长。").optional(),
   baseURL: z.string().trim().max(500, "Base URL 过长。").optional(),
   siteUrl: z.string().trim().max(500, "站点 URL 过长。").optional(),
-  appName: z.string().trim().max(100, "应用名称过长。").optional()
+  appName: z.string().trim().max(100, "应用名称过长。").optional(),
+  proxy: z.string().trim().max(500, "代理地址过长。").optional()
 });
 
 type RouteContext = {

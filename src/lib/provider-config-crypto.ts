@@ -61,6 +61,11 @@ export function buildProviderConfigSnapshot(input: AIProviderConfigInput): AIPro
     snapshot.appName = appName;
   }
 
+  const proxy = normalizeOptional(input.proxy);
+  if (proxy) {
+    snapshot.proxy = proxy;
+  }
+
   return Object.keys(snapshot).length > 0 ? snapshot : null;
 }
 

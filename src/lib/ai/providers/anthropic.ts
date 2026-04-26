@@ -78,7 +78,7 @@ type AnthropicResponse = {
 
 export class AnthropicProvider implements AIProvider {
   async analyzeResume(input: AnalyzeInput) {
-    const { apiKey, model, baseURL } = input.providerConfig;
+    const { apiKey, model, baseURL, proxy } = input.providerConfig;
 
     if (!apiKey) {
       throw new Error("Missing API key for Anthropic.");
@@ -88,8 +88,14 @@ export class AnthropicProvider implements AIProvider {
       throw new Error("Missing model for Anthropic.");
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const dispatcher = proxy ? new (require("undici").ProxyAgent)(proxy) : undefined;
+    const proxyFetch: typeof fetch = dispatcher
+      ? (url, init) => fetch(url as RequestInfo, { ...init, dispatcher } as RequestInit)
+      : fetch;
+
     const endpoint = `${(baseURL || "https://api.anthropic.com/v1").replace(/\/$/, "")}/messages`;
-    const response = await fetch(endpoint, {
+    const response = await proxyFetch(endpoint, {
       method: "POST",
       headers: {
         "content-type": "application/json",

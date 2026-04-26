@@ -49,6 +49,7 @@ type ProviderConfigMutationInput = {
   baseURL?: string;
   siteUrl?: string;
   appName?: string;
+  proxy?: string;
 };
 
 function pickValue<T extends string>(options: {
@@ -79,7 +80,8 @@ function sanitizeSnapshot(snapshot: AIProviderConfigSnapshot | null) {
     apiKey: snapshot.apiKey,
     baseURL: snapshot.baseURL,
     siteUrl: snapshot.siteUrl,
-    appName: snapshot.appName
+    appName: snapshot.appName,
+    proxy: snapshot.proxy
   };
 }
 
@@ -101,7 +103,8 @@ function decodeRecord(record: ProviderConfigRecord) {
       model: record.model,
       baseURL: snapshot?.baseURL ?? defaults.baseURL,
       siteUrl: snapshot?.siteUrl ?? defaults.siteUrl,
-      appName: snapshot?.appName ?? defaults.appName
+      appName: snapshot?.appName ?? defaults.appName,
+      proxy: snapshot?.proxy ?? defaults.proxy
     } satisfies ProviderFormValues,
     updatedAt: record.updatedAt,
     createdAt: record.createdAt
@@ -250,7 +253,8 @@ export async function getUserProviderConfigInput(userId: string, configId: strin
     model: decoded.values.model,
     baseURL: decoded.values.baseURL,
     siteUrl: decoded.values.siteUrl,
-    appName: decoded.values.appName
+    appName: decoded.values.appName,
+    proxy: decoded.values.proxy
   } satisfies AIProviderConfigInput;
 }
 

@@ -3,7 +3,7 @@ import type { AIProvider, AnalyzeInput } from "@/lib/ai/types";
 
 export class GeminiProvider implements AIProvider {
   async analyzeResume(input: AnalyzeInput) {
-    const { apiKey, model, baseURL, protocol, apiKeyMode } = input.providerConfig;
+    const { apiKey, model, baseURL, protocol, apiKeyMode, proxy } = input.providerConfig;
 
     if (!apiKey) {
       throw new Error("Missing API key for Gemini.");
@@ -19,7 +19,8 @@ export class GeminiProvider implements AIProvider {
       model,
       protocol,
       apiKeyMode,
-      providerLabel: "Gemini"
+      providerLabel: "Gemini",
+      ...(proxy ? { proxy } : {})
     });
   }
 }

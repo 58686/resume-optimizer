@@ -3,7 +3,7 @@ import type { AIProvider, AnalyzeInput } from "@/lib/ai/types";
 
 export class OpenAIProvider implements AIProvider {
   async analyzeResume(input: AnalyzeInput) {
-    const { apiKey, model, protocol, apiKeyMode } = input.providerConfig;
+    const { apiKey, model, protocol, apiKeyMode, proxy } = input.providerConfig;
 
     if (!apiKey) {
       throw new Error("Missing API key for OpenAI.");
@@ -18,7 +18,8 @@ export class OpenAIProvider implements AIProvider {
       model,
       protocol,
       apiKeyMode,
-      providerLabel: "OpenAI"
+      providerLabel: "OpenAI",
+      ...(proxy ? { proxy } : {})
     });
   }
 }

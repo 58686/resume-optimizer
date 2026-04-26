@@ -3,7 +3,7 @@ import type { AIProvider, AnalyzeInput } from "@/lib/ai/types";
 
 export class OpenRouterProvider implements AIProvider {
   async analyzeResume(input: AnalyzeInput) {
-    const { apiKey, model, baseURL, siteUrl, appName, protocol, apiKeyMode } = input.providerConfig;
+    const { apiKey, model, baseURL, siteUrl, appName, protocol, apiKeyMode, proxy } = input.providerConfig;
 
     if (!apiKey) {
       throw new Error("Missing API key for OpenRouter.");
@@ -23,7 +23,8 @@ export class OpenRouterProvider implements AIProvider {
       defaultHeaders: {
         ...(siteUrl ? { Referer: siteUrl } : {}),
         ...(appName ? { "X-Title": appName } : {})
-      }
+      },
+      ...(proxy ? { proxy } : {})
     });
   }
 }

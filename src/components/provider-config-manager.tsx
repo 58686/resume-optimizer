@@ -158,7 +158,8 @@ export function ProviderConfigManager() {
       model: draft.values.model,
       baseURL: draft.values.baseURL,
       siteUrl: draft.values.siteUrl,
-      appName: draft.values.appName
+      appName: draft.values.appName,
+      proxy: draft.values.proxy
     };
   }
 
@@ -512,6 +513,16 @@ export function ProviderConfigManager() {
               />
             </div>
           ) : null}
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-300">HTTP 代理</label>
+            <input
+              value={draft.values.proxy}
+              onChange={(event) => updateDraftValues({ proxy: event.target.value })}
+              placeholder="例如：http://127.0.0.1:7890（留空则不使用代理）"
+              className="mt-2 block w-full rounded-2xl border border-zinc-700 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-300"
+            />
+          </div>
 
           {providerSupportsSiteMetadata(draft.provider) ? (
             <div className="grid gap-4 md:grid-cols-2">

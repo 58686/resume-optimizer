@@ -66,7 +66,8 @@ function sanitizeSnapshot(snapshot: AIProviderConfigSnapshot | null) {
     apiKey: snapshot.apiKey,
     baseURL: snapshot.baseURL,
     siteUrl: snapshot.siteUrl,
-    appName: snapshot.appName
+    appName: snapshot.appName,
+    proxy: snapshot.proxy
   };
 }
 
@@ -168,7 +169,8 @@ export async function listUserProviderProfiles(userId: string) {
       model: decoded?.model ?? getDefaultModel(provider),
       baseURL: snapshot?.baseURL ?? values[provider].baseURL,
       siteUrl: snapshot?.siteUrl ?? values[provider].siteUrl,
-      appName: snapshot?.appName ?? values[provider].appName
+      appName: snapshot?.appName ?? values[provider].appName,
+      proxy: snapshot?.proxy ?? values[provider].proxy
     };
 
     meta[provider] = {

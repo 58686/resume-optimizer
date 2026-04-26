@@ -14,6 +14,7 @@ export type ProviderFormValues = {
   baseURL: string;
   siteUrl: string;
   appName: string;
+  proxy: string;
 };
 
 export type ProviderProfileMeta = {
@@ -122,7 +123,8 @@ export function getDefaultProviderValues(provider: AIProviderId): ProviderFormVa
     model: getDefaultModel(provider),
     baseURL: getDefaultBaseURL(provider),
     siteUrl: "",
-    appName: "resume-optimizer"
+    appName: "resume-optimizer",
+    proxy: ""
   };
 }
 

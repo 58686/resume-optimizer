@@ -116,6 +116,12 @@ export function InterviewPrepPanel({
       });
 
       const data = await readApiResponse<InterviewPrepResult>(response);
+
+      if (!data.questions || data.questions.length === 0) {
+        toast({ tone: "error", title: "生成结果为空", description: "AI 未返回任何面试题，请检查终端日志或尝试更换 AI 配置。" });
+        return;
+      }
+
       setQuestions(data.questions);
       setActiveCategory("all");
       setActiveDifficulty("all");

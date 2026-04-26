@@ -48,6 +48,7 @@ export type AIProviderConfig = {
   baseURL?: string;
   siteUrl?: string;
   appName?: string;
+  proxy?: string;
 };
 
 export type AIProviderConfigInput = Partial<AIProviderConfig> & {
@@ -61,6 +62,7 @@ export type AIProviderConfigSnapshot = {
   baseURL?: string;
   siteUrl?: string;
   appName?: string;
+  proxy?: string;
 };
 
 export type AnalyzeInput = {

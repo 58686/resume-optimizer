@@ -14,6 +14,7 @@ type OpenAICompatibleConfig = {
   providerLabel: string;
   defaultHeaders?: Record<string, string>;
   maxTokens?: number;
+  proxy?: string;
 };
 
 const MODEL_REQUEST_TIMEOUT_MS = env.ANALYSIS_TASK_TIMEOUT_MS;
@@ -39,18 +40,36 @@ function applyApiKeyHeader(headers: Headers, apiKey: string, apiKeyMode: AIApiKe
   }
 }
 
-function createAuthAwareFetch(config: OpenAICompatibleConfig): typeof fetch {
+function createFetch(config: OpenAICompatibleConfig): typeof fetch {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const dispatcher = config.proxy ? new (require("undici").ProxyAgent)(config.proxy) : undefined;
+
   return async (input, init) => {
-    if (config.apiKeyMode === "bearer") {
+    const needsCustomAuth = config.apiKeyMode !== "bearer";
+
+    if (!needsCustomAuth && !dispatcher) {
       return fetch(input, init);
     }
 
-    const request = new Request(input, init);
+    const request = new Request(input as RequestInfo, init);
     const headers = new Headers(request.headers);
 
-    applyApiKeyHeader(headers, config.apiKey, config.apiKeyMode);
+    if (needsCustomAuth) {
+      applyApiKeyHeader(headers, config.apiKey, config.apiKeyMode);
+    }
 
-    return fetch(new Request(request, { headers }));
+    const fetchInit: RequestInit & { dispatcher?: unknown } = {
+      method: request.method,
+      headers,
+      body: request.body,
+      // @ts-expect-error - duplex is required for streaming request bodies in Node fetch
+      duplex: "half"
+    };
+    if (dispatcher) {
+      fetchInit.dispatcher = dispatcher;
+    }
+
+    return fetch(input as RequestInfo, fetchInit as RequestInit);
   };
 }
 
@@ -126,7 +145,7 @@ export async function generateStructuredWithOpenAICompatible<T>(
     apiKey: config.apiKey,
     baseURL: config.baseURL,
     defaultHeaders: config.defaultHeaders,
-    fetch: createAuthAwareFetch(config),
+    fetch: createFetch(config),
     maxRetries: 0,
     timeout: MODEL_REQUEST_TIMEOUT_MS
   });
