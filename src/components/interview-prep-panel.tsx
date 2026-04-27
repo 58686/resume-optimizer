@@ -8,7 +8,7 @@ import {
   exportInterviewPrepPdf,
   exportInterviewPrepDocx
 } from "@/lib/interview-prep-export";
-import type { InterviewPrepQuestion, InterviewPrepResult } from "@/types/analysis";
+import type { InterviewPrepQuestion } from "@/types/analysis";
 import { categoryLabels, difficultyLabels } from "@/types/analysis";
 import { jobDescriptionTemplates } from "@/lib/job-description-templates";
 
@@ -67,6 +67,7 @@ export function InterviewPrepPanel({
   const [jobDescription, setJobDescription] = useState(initialJobDescription ?? "");
   const [providerConfigId, setProviderConfigId] = useState(providerConfigs[0]?.id ?? "");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingCategory, setGeneratingCategory] = useState<CategoryKey | null>(null);
   const [questions, setQuestions] = useState<InterviewPrepQuestion[]>([]);
   const [activeCategory, setActiveCategory] = useState<CategoryKey | "all">("all");
   const [activeDifficulty, setActiveDifficulty] = useState<DifficultyKey | "all">("all");
@@ -102,6 +103,7 @@ export function InterviewPrepPanel({
 
     try {
       setIsGenerating(true);
+      setGeneratingCategory(null);
       setQuestions([]);
       setExpandedIndex(null);
 
@@ -115,22 +117,82 @@ export function InterviewPrepPanel({
         })
       });
 
-      const data = await readApiResponse<InterviewPrepResult>(response);
-
-      if (!data.questions || data.questions.length === 0) {
-        toast({ tone: "error", title: "生成结果为空", description: "AI 未返回任何面试题，请检查终端日志或尝试更换 AI 配置。" });
-        return;
+      if (!response.ok || !response.body) {
+        const text = await response.text();
+        let message = "生成面试题失败";
+        try {
+          const json = JSON.parse(text);
+          message = json?.error?.message || message;
+        } catch {}
+        throw new Error(message);
       }
 
-      setQuestions(data.questions);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let eventType = "";
+      let dataLines: string[] = [];
+      let totalQuestions = 0;
+      let hasError = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            eventType = line.slice(7).trim();
+          } else if (line.startsWith("data: ")) {
+            dataLines.push(line.slice(6));
+          } else if (line === "") {
+            if (eventType && dataLines.length > 0) {
+              try {
+                const data = JSON.parse(dataLines.join("\n"));
+
+                if (eventType === "progress") {
+                  setGeneratingCategory(data.category as CategoryKey);
+                } else if (eventType === "questions") {
+                  if (Array.isArray(data.questions) && data.questions.length > 0) {
+                    setQuestions((prev) => [...prev, ...data.questions]);
+                  }
+                } else if (eventType === "done") {
+                  totalQuestions = data.totalQuestions ?? 0;
+                  setGeneratingCategory(null);
+                } else if (eventType === "error") {
+                  if (data.fatal) {
+                    hasError = true;
+                    throw new Error(data.message || "生成失败");
+                  } else {
+                    toast({ tone: "error", title: `${data.category} 分类生成失败`, description: data.message });
+                  }
+                }
+              } catch (parseError) {
+                if (hasError) throw parseError;
+              }
+            }
+            eventType = "";
+            dataLines = [];
+          }
+        }
+      }
+
       setActiveCategory("all");
       setActiveDifficulty("all");
 
-      toast({ tone: "success", title: "面试题已生成", description: `共生成 ${data.questions.length} 道面试题。` });
+      if (totalQuestions === 0) {
+        toast({ tone: "error", title: "生成结果为空", description: "AI 未返回任何面试题，请检查终端日志或尝试更换 AI 配置。" });
+      } else {
+        toast({ tone: "success", title: "面试题已生成", description: `共生成 ${totalQuestions} 道面试题。` });
+      }
     } catch (error) {
       toast({ tone: "error", title: "生成失败", description: error instanceof Error ? error.message : "生成面试题时出错。" });
     } finally {
       setIsGenerating(false);
+      setGeneratingCategory(null);
     }
   }
 
@@ -286,7 +348,7 @@ export function InterviewPrepPanel({
             {isGenerating ? (
               <span className="flex items-center gap-2">
                 <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                生成中...
+                {generatingCategory ? `正在生成 ${categoryLabels[generatingCategory].replace(/^[^\s]+\s/, "")}...` : "准备中..."}
               </span>
             ) : (
               "生成面试题 →"
@@ -482,16 +544,36 @@ export function InterviewPrepPanel({
         </section>
       )}
 
-      {/* Loading state */}
-      {isGenerating && (
+      {/* Loading state - only show when no questions yet */}
+      {isGenerating && questions.length === 0 && (
         <section className="animate-fade-in rounded-[2rem] border border-zinc-800 glass-panel p-16 text-center backdrop-blur-sm">
           <div className="mx-auto max-w-sm">
             <div className="mx-auto h-12 w-12 animate-spin rounded-full border-[3px] border-zinc-700 border-t-white" />
-            <h3 className="mt-6 text-lg font-bold text-white">正在生成面试题...</h3>
+            <h3 className="mt-6 text-lg font-bold text-white">
+              {generatingCategory
+                ? `正在生成${categoryLabels[generatingCategory].replace(/^[^\s]+\s/, "")}...`
+                : "准备中..."}
+            </h3>
             <p className="mt-2 text-sm leading-6 text-zinc-500">
-              AI 正在深度分析简历与岗位需求，生成 HR、技术、项目、行为等全套题目。
-              <br />通常需要 30–60 秒，请稍候。
+              按分类逐批生成，HR · 技术 · 项目 · 行为 · 系统设计 · 开放性问题。
+              <br />题目会陆续出现，无需等待全部完成。
             </p>
+          </div>
+        </section>
+      )}
+
+      {/* Generating progress bar - show when questions are coming in */}
+      {isGenerating && questions.length > 0 && generatingCategory && (
+        <section className="animate-fade-in rounded-2xl border border-zinc-800 glass-panel px-6 py-4 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-zinc-600 border-t-white" />
+            <span className="text-sm text-zinc-400">
+              正在生成
+              <span className="mx-1 font-semibold text-zinc-200">
+                {categoryLabels[generatingCategory]}
+              </span>
+              · 已生成 {questions.length} 道题目
+            </span>
           </div>
         </section>
       )}
