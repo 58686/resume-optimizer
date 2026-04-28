@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { sendEmailVerificationEmail } from "@/lib/account-security";
-import { createSession, hashPassword, setSessionCookie } from "@/lib/auth";
+import { createSession, hashPassword } from "@/lib/auth";
 import { apiError, apiSuccess, apiValidationError } from "@/lib/api-response";
-import { requireCsrfProtection } from "@/lib/csrf";
 import { prisma } from "@/lib/prisma";
 
 const registerSchema = z.object({
@@ -14,12 +13,6 @@ const registerSchema = z.object({
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const csrfError = requireCsrfProtection(request);
-
-  if (csrfError) {
-    return csrfError;
-  }
-
   try {
     const body = registerSchema.parse(await request.json());
     const existing = await prisma.user.findUnique({ where: { email: body.email } });
@@ -51,11 +44,12 @@ export async function POST(request: Request) {
       verificationEmailSent = true;
       emailPreviewPath = delivery.previewPath;
     } catch (emailError) {
-      console.error("Failed to send verification email after register:", emailError);
+      console.error("Failed to send verification email after mobile register:", emailError);
     }
 
     const { token, expiresAt } = await createSession(user.id);
-    const response = apiSuccess({
+
+    return apiSuccess({
       id: user.id,
       name: user.name,
       email: user.email,
@@ -65,15 +59,12 @@ export async function POST(request: Request) {
       verificationEmailSent,
       emailPreviewPath
     });
-
-    setSessionCookie(response, token, expiresAt);
-    return response;
   } catch (error) {
     if (error instanceof z.ZodError) {
       return apiValidationError(error, "注册信息不合法。");
     }
 
-    console.error("Register route failed:", error);
+    console.error("Mobile register route failed:", error);
     return apiError("注册失败。", 500, "REGISTER_FAILED");
   }
 }

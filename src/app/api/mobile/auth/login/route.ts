@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { createSession, deleteExpiredSessions, setSessionCookie, verifyPassword } from "@/lib/auth";
+import { createSession, deleteExpiredSessions, verifyPassword } from "@/lib/auth";
 import { apiError, apiSuccess, apiValidationError } from "@/lib/api-response";
-import { requireCsrfProtection } from "@/lib/csrf";
 import { prisma } from "@/lib/prisma";
 import { applyRateLimitHeaders, checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 
@@ -13,14 +12,8 @@ const loginSchema = z.object({
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const csrfError = requireCsrfProtection(request);
-
-  if (csrfError) {
-    return csrfError;
-  }
-
   const rateLimit = await checkRateLimit({
-    key: `login:${getRequestIp(request)}`,
+    key: `mobile-login:${getRequestIp(request)}`,
     limit: 10,
     windowMs: 60 * 1000
   });
@@ -45,17 +38,18 @@ export async function POST(request: Request) {
     }
 
     const { token, expiresAt } = await createSession(user.id);
-    const response = apiSuccess({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      emailVerified: Boolean(user.emailVerifiedAt),
-      sessionToken: token,
-      sessionExpiresAt: expiresAt.toISOString()
-    });
 
-    setSessionCookie(response, token, expiresAt);
-    return applyRateLimitHeaders(response, rateLimit);
+    return applyRateLimitHeaders(
+      apiSuccess({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        emailVerified: Boolean(user.emailVerifiedAt),
+        sessionToken: token,
+        sessionExpiresAt: expiresAt.toISOString()
+      }),
+      rateLimit
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return applyRateLimitHeaders(apiValidationError(error, "登录信息不合法。"), rateLimit);

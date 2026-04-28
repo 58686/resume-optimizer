@@ -3,8 +3,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { apiError, apiValidationError } from "@/lib/api-response";
 import { requireCsrfProtection } from "@/lib/csrf";
 import { resolveProviderConfig } from "@/lib/env";
+import { serializeInterviewPrepQuestions } from "@/lib/interview-prep-record";
 import { getUserProviderConfigInput } from "@/lib/provider-configs";
 import { buildAnalyzeProviderConfigInput } from "@/lib/provider-profiles";
+import { prisma } from "@/lib/prisma";
 import { applyRateLimitHeaders, checkRateLimit, createRateLimitHeaders } from "@/lib/rate-limit";
 import { generateStructuredWithOpenAICompatible } from "@/lib/ai/shared";
 import {
@@ -40,6 +42,8 @@ const bodySchema = z
       .trim()
       .min(30, "职位描述至少需要 30 个字符。")
       .max(16000, "职位描述过长，请仅保留核心职责和要求。"),
+    analysisId: z.string().trim().min(1).optional(),
+    sessionId: z.string().trim().min(1).optional(),
     providerConfigId: z.string().trim().min(1).optional(),
     providerConfig: providerConfigSchema.optional()
   })
@@ -95,6 +99,54 @@ function buildOpenAICompatibleConfig(providerConfig: ReturnType<typeof resolvePr
   };
 }
 
+async function persistInterviewPrepSession(params: {
+  userId: string;
+  analysisId?: string;
+  sessionId?: string;
+  sourceFileName?: string | null;
+  resumeText: string;
+  jobDescription: string;
+  questions: InterviewPrepQuestion[];
+}) {
+  const data = {
+    userId: params.userId,
+    analysisId: params.analysisId ?? null,
+    sourceFileName: params.sourceFileName ?? null,
+    resumeText: params.resumeText,
+    jobDescription: params.jobDescription,
+    questions: serializeInterviewPrepQuestions(params.questions)
+  };
+
+  if (params.sessionId) {
+    const existing = await prisma.interviewPrepSession.findFirst({
+      where: {
+        id: params.sessionId,
+        userId: params.userId
+      },
+      select: { id: true }
+    });
+
+    if (existing) {
+      return prisma.interviewPrepSession.update({
+        where: { id: existing.id },
+        data
+      });
+    }
+  }
+
+  if (params.analysisId) {
+    return prisma.interviewPrepSession.upsert({
+      where: { analysisId: params.analysisId },
+      update: data,
+      create: data
+    });
+  }
+
+  return prisma.interviewPrepSession.create({
+    data
+  });
+}
+
 export async function POST(request: Request) {
   const csrfError = requireCsrfProtection(request);
   if (csrfError) return csrfError;
@@ -140,6 +192,25 @@ export async function POST(request: Request) {
   const baseConfig = buildOpenAICompatibleConfig(providerConfig);
   const { resumeText, jobDescription } = body;
   const signal = request.signal;
+  const sourceAnalysis = body.analysisId
+    ? await prisma.resumeAnalysis.findFirst({
+        where: {
+          id: body.analysisId,
+          userId: user.id
+        },
+        select: {
+          id: true,
+          fileName: true
+        }
+      })
+    : null;
+
+  if (body.analysisId && !sourceAnalysis) {
+    return applyRateLimitHeaders(
+      apiError("来源分析记录不存在。", 404, "SOURCE_ANALYSIS_NOT_FOUND"),
+      rateLimit
+    );
+  }
 
   const encoder = new TextEncoder();
 
@@ -153,6 +224,7 @@ export async function POST(request: Request) {
 
       try {
         const allQuestions: InterviewPrepQuestion[] = [];
+        let savedSessionId: string | null = null;
 
         for (const category of INTERVIEW_CATEGORIES) {
           if (signal.aborted) break;
@@ -193,7 +265,34 @@ export async function POST(request: Request) {
           }
         }
 
-        send("done", { totalQuestions: allQuestions.length });
+        if (!signal.aborted && allQuestions.length > 0) {
+          try {
+            const savedSession = await persistInterviewPrepSession({
+              userId: user.id,
+              analysisId: sourceAnalysis?.id,
+              sessionId: body.sessionId,
+              sourceFileName: sourceAnalysis?.fileName,
+              resumeText,
+              jobDescription,
+              questions: allQuestions
+            });
+
+            savedSessionId = savedSession.id;
+            send("saved", {
+              sessionId: savedSession.id,
+              savedAt: savedSession.updatedAt.toISOString()
+            });
+          } catch (persistError) {
+            console.error("[interview-prep] persist failed:", persistError);
+            send("error", {
+              message: "面试题已生成，但保存失败，请稍后重试。",
+              fatal: false,
+              code: "SAVE_FAILED"
+            });
+          }
+        }
+
+        send("done", { totalQuestions: allQuestions.length, sessionId: savedSessionId });
       } catch (error) {
         console.error("[interview-prep] stream failed:", error);
         const message = error instanceof Error ? error.message : String(error);

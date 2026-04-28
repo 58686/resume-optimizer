@@ -56,11 +56,17 @@ type ProviderConfigOption = {
 export function InterviewPrepPanel({
   providerConfigs,
   initialResumeText,
-  initialJobDescription
+  initialJobDescription,
+  initialQuestions,
+  initialAnalysisId,
+  initialSessionId
 }: {
   providerConfigs: ProviderConfigOption[];
   initialResumeText?: string;
   initialJobDescription?: string;
+  initialQuestions?: InterviewPrepQuestion[];
+  initialAnalysisId?: string;
+  initialSessionId?: string;
 }) {
   const toast = useToast();
   const [resumeText, setResumeText] = useState(initialResumeText ?? "");
@@ -68,12 +74,13 @@ export function InterviewPrepPanel({
   const [providerConfigId, setProviderConfigId] = useState(providerConfigs[0]?.id ?? "");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingCategory, setGeneratingCategory] = useState<CategoryKey | null>(null);
-  const [questions, setQuestions] = useState<InterviewPrepQuestion[]>([]);
+  const [questions, setQuestions] = useState<InterviewPrepQuestion[]>(initialQuestions ?? []);
   const [activeCategory, setActiveCategory] = useState<CategoryKey | "all">("all");
   const [activeDifficulty, setActiveDifficulty] = useState<DifficultyKey | "all">("all");
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [jdUrl, setJdUrl] = useState("");
   const [isScraping, setIsScraping] = useState(false);
+  const [sessionId, setSessionId] = useState(initialSessionId ?? "");
 
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
@@ -90,6 +97,12 @@ export function InterviewPrepPanel({
     }
     return stats;
   }, [questions]);
+
+  function syncSessionUrl(nextSessionId: string) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("session", nextSessionId);
+    window.history.replaceState(null, "", url.toString());
+  }
 
   async function handleGenerate() {
     if (!resumeText.trim() || !jobDescription.trim()) {
@@ -113,7 +126,9 @@ export function InterviewPrepPanel({
         body: JSON.stringify({
           resumeText: resumeText.trim(),
           jobDescription: jobDescription.trim(),
-          providerConfigId
+          providerConfigId,
+          analysisId: initialAnalysisId,
+          sessionId: sessionId || undefined
         })
       });
 
@@ -134,6 +149,7 @@ export function InterviewPrepPanel({
       let dataLines: string[] = [];
       let totalQuestions = 0;
       let hasError = false;
+      let savedSessionId = sessionId;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -159,8 +175,19 @@ export function InterviewPrepPanel({
                   if (Array.isArray(data.questions) && data.questions.length > 0) {
                     setQuestions((prev) => [...prev, ...data.questions]);
                   }
+                } else if (eventType === "saved") {
+                  if (typeof data.sessionId === "string" && data.sessionId) {
+                    savedSessionId = data.sessionId;
+                    setSessionId(data.sessionId);
+                    syncSessionUrl(data.sessionId);
+                  }
                 } else if (eventType === "done") {
                   totalQuestions = data.totalQuestions ?? 0;
+                  if (typeof data.sessionId === "string" && data.sessionId) {
+                    savedSessionId = data.sessionId;
+                    setSessionId(data.sessionId);
+                    syncSessionUrl(data.sessionId);
+                  }
                   setGeneratingCategory(null);
                 } else if (eventType === "error") {
                   if (data.fatal) {
@@ -186,7 +213,11 @@ export function InterviewPrepPanel({
       if (totalQuestions === 0) {
         toast({ tone: "error", title: "生成结果为空", description: "AI 未返回任何面试题，请检查终端日志或尝试更换 AI 配置。" });
       } else {
-        toast({ tone: "success", title: "面试题已生成", description: `共生成 ${totalQuestions} 道面试题。` });
+        toast({
+          tone: "success",
+          title: "面试题已生成",
+          description: savedSessionId || initialAnalysisId ? `共生成 ${totalQuestions} 道面试题，结果已自动保存。` : `共生成 ${totalQuestions} 道面试题。`
+        });
       }
     } catch (error) {
       toast({ tone: "error", title: "生成失败", description: error instanceof Error ? error.message : "生成面试题时出错。" });

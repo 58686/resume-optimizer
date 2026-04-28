@@ -1,6 +1,6 @@
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual, createHash } from "node:crypto";
 import { promisify } from "node:util";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextResponse } from "next/server";
 import { env } from "@/lib/env";
@@ -37,6 +37,20 @@ export async function verifyPassword(password: string, storedHash: string) {
 
 function hashSessionToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
+}
+
+function extractBearerToken(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const [scheme, token] = value.trim().split(/\s+/, 2);
+
+  if (!scheme || !token || scheme.toLowerCase() !== "bearer") {
+    return null;
+  }
+
+  return token;
 }
 
 export async function createSession(userId: string) {
@@ -120,7 +134,10 @@ async function refreshSessionIfNeeded(params: {
 
 export async function getCurrentSession() {
   const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const headerStore = await headers();
+  const token =
+    cookieStore.get(SESSION_COOKIE_NAME)?.value ??
+    extractBearerToken(headerStore.get("authorization"));
 
   if (!token) {
     return null;

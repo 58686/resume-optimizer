@@ -16,7 +16,8 @@ export async function POST(request: Request) {
     ?.split(";")
     .map((item) => item.trim())
     .find((item) => item.startsWith(`${SESSION_COOKIE_NAME}=`))
-    ?.split("=")[1];
+    ?.split("=")[1] ??
+    request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
 
   if (token) {
     await deleteSessionByToken(token);

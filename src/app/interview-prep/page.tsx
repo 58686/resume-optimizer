@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { InterviewPrepPanel } from "@/components/interview-prep-panel";
+import { mapInterviewPrepSession, interviewPrepSessionSelect } from "@/lib/interview-prep-record";
 import { requireCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { listUserProviderConfigs } from "@/lib/provider-configs";
+import type { InterviewPrepQuestion } from "@/types/analysis";
 
 export default async function InterviewPrepPage({
   searchParams
 }: {
-  searchParams?: Promise<{ from?: string }>;
+  searchParams?: Promise<{ from?: string; session?: string }>;
 }) {
   const user = await requireCurrentUser();
   const { configs } = await listUserProviderConfigs(user.id);
@@ -21,6 +23,9 @@ export default async function InterviewPrepPage({
   let initialResumeText: string | undefined;
   let initialJobDescription: string | undefined;
   let fromFileName: string | null = null;
+  let initialAnalysisId: string | undefined;
+  let initialSessionId: string | undefined;
+  let initialQuestions: InterviewPrepQuestion[] | undefined;
 
   if (params.from) {
     const result = await prisma.resumeAnalysis.findFirst({
@@ -31,7 +36,36 @@ export default async function InterviewPrepPage({
       initialResumeText = result.resumeText;
       initialJobDescription = result.jobDescription;
       fromFileName = result.fileName;
+      initialAnalysisId = params.from;
     }
+  }
+
+  const rawSession = params.session
+    ? await prisma.interviewPrepSession.findFirst({
+        where: {
+          id: params.session,
+          userId: user.id
+        },
+        select: interviewPrepSessionSelect
+      })
+    : params.from
+      ? await prisma.interviewPrepSession.findFirst({
+          where: {
+            analysisId: params.from,
+            userId: user.id
+          },
+          select: interviewPrepSessionSelect
+        })
+      : null;
+
+  if (rawSession) {
+    const session = mapInterviewPrepSession(rawSession);
+    initialSessionId = session.id;
+    initialQuestions = session.questions;
+    initialResumeText = session.resumeText;
+    initialJobDescription = session.jobDescription;
+    fromFileName = session.sourceFileName ?? fromFileName;
+    initialAnalysisId = session.analysisId ?? initialAnalysisId;
   }
 
   return (
@@ -76,6 +110,9 @@ export default async function InterviewPrepPage({
           providerConfigs={providerConfigOptions}
           initialResumeText={initialResumeText}
           initialJobDescription={initialJobDescription}
+          initialQuestions={initialQuestions}
+          initialAnalysisId={initialAnalysisId}
+          initialSessionId={initialSessionId}
         />
       </section>
     </main>
