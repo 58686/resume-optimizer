@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createSession, deleteExpiredSessions, setSessionCookie, verifyPassword } from "@/lib/auth";
+import { createSession, maybePurgeExpiredSessions, setSessionCookie, verifyPassword } from "@/lib/auth";
 import { apiError, apiSuccess, apiValidationError } from "@/lib/api-response";
 import { requireCsrfProtection } from "@/lib/csrf";
 import { prisma } from "@/lib/prisma";
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await deleteExpiredSessions();
+    maybePurgeExpiredSessions();
     const body = loginSchema.parse(await request.json());
     const user = await prisma.user.findUnique({ where: { email: body.email } });
 

@@ -93,24 +93,31 @@ export function decryptProviderConfigSnapshot(payload?: string | null): AIProvid
     return null;
   }
 
-  const [version, ivValue, authTagValue, ciphertextValue] = payload.split(".");
-  if (version !== ENCRYPTION_VERSION || !ivValue || !authTagValue || !ciphertextValue) {
-    throw new Error("任务中的 Provider 配置快照格式无效。");
+  try {
+    const [version, ivValue, authTagValue, ciphertextValue] = payload.split(".");
+    if (version !== ENCRYPTION_VERSION || !ivValue || !authTagValue || !ciphertextValue) {
+      throw new Error("任务中的 Provider 配置快照格式无效。");
+    }
+
+    const decipher = createDecipheriv(
+      ENCRYPTION_ALGORITHM,
+      requireEncryptionKey(),
+      Buffer.from(ivValue, "base64url")
+    );
+    decipher.setAuthTag(Buffer.from(authTagValue, "base64url"));
+
+    const plaintext = Buffer.concat([
+      decipher.update(Buffer.from(ciphertextValue, "base64url")),
+      decipher.final()
+    ]);
+
+    return JSON.parse(plaintext.toString("utf8")) as AIProviderConfigSnapshot;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("ANALYSIS_TASK_ENCRYPTION_KEY")) {
+      throw error;
+    }
+    throw new Error("Provider 配置快照解密失败，数据可能已损坏或密钥已更换。");
   }
-
-  const decipher = createDecipheriv(
-    ENCRYPTION_ALGORITHM,
-    requireEncryptionKey(),
-    Buffer.from(ivValue, "base64url")
-  );
-  decipher.setAuthTag(Buffer.from(authTagValue, "base64url"));
-
-  const plaintext = Buffer.concat([
-    decipher.update(Buffer.from(ciphertextValue, "base64url")),
-    decipher.final()
-  ]);
-
-  return JSON.parse(plaintext.toString("utf8")) as AIProviderConfigSnapshot;
 }
 
 export function resolveTaskProviderConfig(task: {

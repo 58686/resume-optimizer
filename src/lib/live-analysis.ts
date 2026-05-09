@@ -60,6 +60,8 @@ function getProviderLabel(config: AIProviderConfig) {
       return "NVIDIA";
     case "gemini":
       return "Gemini";
+    case "anthropic":
+      return "Anthropic";
     case "openai":
     default:
       return "OpenAI";

@@ -4,7 +4,7 @@ import { requireCsrfProtection } from "@/lib/csrf";
 import { extractTextFromFile } from "@/lib/parser";
 import { prisma } from "@/lib/prisma";
 import { applyRateLimitHeaders, checkRateLimit } from "@/lib/rate-limit";
-import { saveResumeFile } from "@/lib/storage";
+import { deleteStoredFile, saveResumeFile } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -47,7 +47,9 @@ export async function POST(request: Request) {
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    // Extract text before writing to storage — parse failures won't leave orphaned files.
     const resumeText = await extractTextFromFile(file);
+
     const stored = await saveResumeFile({
       userId: user.id,
       fileName: file.name,
@@ -55,16 +57,23 @@ export async function POST(request: Request) {
       mimeType: file.type
     });
 
-    const document = await prisma.resumeDocument.create({
-      data: {
-        userId: user.id,
-        originalFileName: file.name,
-        mimeType: file.type || "application/octet-stream",
-        fileSize: file.size,
-        storageKey: stored.storageKey,
-        extractedText: resumeText
-      }
-    });
+    let document;
+    try {
+      document = await prisma.resumeDocument.create({
+        data: {
+          userId: user.id,
+          originalFileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          fileSize: file.size,
+          storageKey: stored.storageKey,
+          extractedText: resumeText
+        }
+      });
+    } catch (dbError) {
+      // DB write failed after file was stored — clean up to avoid orphaned files.
+      await deleteStoredFile(stored.storageKey).catch(() => undefined);
+      throw dbError;
+    }
 
     return applyRateLimitHeaders(
       apiSuccess({

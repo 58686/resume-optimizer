@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { processAnalysisTask, recoverTimedOutAnalysisTasks } from "@/lib/analysis-task";
+import { processAnalysisTask } from "@/lib/analysis-task";
 import { getCurrentUser } from "@/lib/auth";
 import { apiError, apiSuccess, apiValidationError, getErrorMessage } from "@/lib/api-response";
 import { requireCsrfProtection } from "@/lib/csrf";
@@ -77,8 +77,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    await recoverTimedOutAnalysisTasks();
-
     const body = analyzeBodySchema.parse(await request.json());
     const providerConfigInput = body.providerConfigId
       ? await getUserProviderConfigInput(user.id, body.providerConfigId)

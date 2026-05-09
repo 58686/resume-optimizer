@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createSession, deleteExpiredSessions, verifyPassword } from "@/lib/auth";
+import { createSession, maybePurgeExpiredSessions, verifyPassword } from "@/lib/auth";
 import { apiError, apiSuccess, apiValidationError } from "@/lib/api-response";
 import { prisma } from "@/lib/prisma";
 import { applyRateLimitHeaders, checkRateLimit, getRequestIp } from "@/lib/rate-limit";
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await deleteExpiredSessions();
+    maybePurgeExpiredSessions();
     const body = loginSchema.parse(await request.json());
     const user = await prisma.user.findUnique({ where: { email: body.email } });
 

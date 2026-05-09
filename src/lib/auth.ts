@@ -201,3 +201,11 @@ export async function deleteExpiredSessions() {
     where: { expiresAt: { lte: new Date() } }
   });
 }
+
+// Runs deleteExpiredSessions with 1/50 probability to amortize cleanup cost
+// across requests without blocking every login.
+export function maybePurgeExpiredSessions() {
+  if (Math.random() < 1 / 50) {
+    void deleteExpiredSessions();
+  }
+}

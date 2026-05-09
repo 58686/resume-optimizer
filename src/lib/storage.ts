@@ -16,7 +16,7 @@ function buildStorageKey(userId: string, fileName: string) {
   const datePrefix = new Date().toISOString().slice(0, 10);
   const safeUserId = userId.replace(/[^a-zA-Z0-9_-]/g, "_");
   const generatedName = `${randomUUID()}${extension}`;
-  return path.join("uploads", safeUserId, datePrefix, generatedName).replace(/\\/g, "/");
+  return path.posix.join("uploads", safeUserId, datePrefix, generatedName);
 }
 
 function getLocalBaseDir() {
@@ -67,11 +67,7 @@ async function streamToBuffer(stream: unknown): Promise<Buffer> {
   const chunks: Buffer[] = [];
 
   for await (const chunk of stream as AsyncIterable<Buffer | string | Uint8Array>) {
-    if (typeof chunk === "string") {
-      chunks.push(Buffer.from(chunk));
-    } else {
-      chunks.push(Buffer.from(chunk));
-    }
+    chunks.push(Buffer.from(chunk));
   }
 
   return Buffer.concat(chunks);

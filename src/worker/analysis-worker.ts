@@ -5,6 +5,8 @@ import {
   runAnalysisTask
 } from "../lib/analysis-task";
 
+const RECOVERY_INTERVAL_MS = 60 * 1000;
+
 async function main() {
   await recoverTimedOutAnalysisTasks();
   await requeuePendingAnalysisTasks();
@@ -27,8 +29,17 @@ async function main() {
     });
   });
 
+  // Periodically recover timed-out tasks (replaces the per-request recovery that was removed
+  // from the analyze API route to keep the request path lean).
+  const recoveryTimer = setInterval(() => {
+    void recoverTimedOutAnalysisTasks().catch((error) => {
+      console.error("[analysis-worker] periodic recovery failed", error);
+    });
+  }, RECOVERY_INTERVAL_MS);
+
   const shutdown = async (signal: string) => {
     console.log(`[analysis-worker] shutting down on ${signal}`);
+    clearInterval(recoveryTimer);
     await worker.close();
     process.exit(0);
   };

@@ -145,37 +145,39 @@ async function writeStreamedAnalysisPatch(
   progressStage?: string,
   progressMessage?: string
 ) {
-  const current = await prisma.analysisTask.findFirst({
-    where: {
-      id: taskId,
-      status: "processing",
-      processingToken
-    },
-    select: {
-      streamedAnalysis: true
+  return prisma.$transaction(async (tx) => {
+    const current = await tx.analysisTask.findFirst({
+      where: {
+        id: taskId,
+        status: "processing",
+        processingToken
+      },
+      select: {
+        streamedAnalysis: true
+      }
+    });
+
+    if (!current) {
+      return false;
     }
+
+    const merged = mergeStreamedAnalysis(parseStreamedAnalysis(current.streamedAnalysis), patch);
+
+    await tx.analysisTask.updateMany({
+      where: {
+        id: taskId,
+        status: "processing",
+        processingToken
+      },
+      data: {
+        streamedAnalysis: stringifyStreamedAnalysis(merged),
+        ...(progressStage ? { progressStage } : {}),
+        ...(progressMessage ? { progressMessage } : {})
+      }
+    });
+
+    return true;
   });
-
-  if (!current) {
-    return false;
-  }
-
-  const merged = mergeStreamedAnalysis(parseStreamedAnalysis(current.streamedAnalysis), patch);
-
-  await prisma.analysisTask.updateMany({
-    where: {
-      id: taskId,
-      status: "processing",
-      processingToken
-    },
-    data: {
-      streamedAnalysis: stringifyStreamedAnalysis(merged),
-      ...(progressStage ? { progressStage } : {}),
-      ...(progressMessage ? { progressMessage } : {})
-    }
-  });
-
-  return true;
 }
 
 async function finalizeTaskSuccess(claimedTask: NonNullable<ClaimedTask>) {
@@ -330,11 +332,12 @@ export async function recoverTimedOutAnalysisTasks(limit = 20) {
     select: { id: true }
   });
 
+  const results = await Promise.all(tasks.map((task) => recoverTimedOutAnalysisTask(task.id)));
+
   let requeued = 0;
   let failed = 0;
 
-  for (const task of tasks) {
-    const result = await recoverTimedOutAnalysisTask(task.id);
+  for (const result of results) {
     if (!result.recovered) continue;
     if (result.action === "requeued") requeued += 1;
     if (result.action === "failed") failed += 1;
@@ -429,7 +432,7 @@ export async function processAnalysisTask(taskId: string) {
 
     // Give the worker a chance to pick up the job.
     // If it's still waiting after a short delay, the worker likely isn't running.
-    const picked = await waitForJobPickup(taskId, 3000);
+    const picked = await waitForJobPickup(taskId, 5000);
 
     if (picked) {
       return; // Worker is handling it
@@ -447,9 +450,11 @@ export async function processAnalysisTask(taskId: string) {
 
 async function waitForJobPickup(taskId: string, timeoutMs: number): Promise<boolean> {
   const start = Date.now();
-  const interval = 500;
+  const interval = 250;
 
   while (Date.now() - start < timeoutMs) {
+    await new Promise((resolve) => setTimeout(resolve, interval));
+
     const task = await prisma.analysisTask.findUnique({
       where: { id: taskId },
       select: { status: true }
@@ -459,8 +464,6 @@ async function waitForJobPickup(taskId: string, timeoutMs: number): Promise<bool
     if (task && task.status !== "queued") {
       return true;
     }
-
-    await new Promise((resolve) => setTimeout(resolve, interval));
   }
 
   return false;
