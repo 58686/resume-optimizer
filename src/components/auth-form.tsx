@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useToast } from "@/components/toast-provider";
 import { readApiResponse } from "@/lib/api-client";
+import { ensureBrowserSessionCookie } from "@/lib/browser-session";
 
 type AuthFormProps = {
   mode: "login" | "signup";
@@ -15,6 +16,8 @@ type AuthResponse = {
   name: string;
   email: string;
   emailVerified: boolean;
+  sessionToken?: string;
+  sessionExpiresAt?: string;
   verificationEmailSent?: boolean;
   emailPreviewPath?: string | null;
 };
@@ -60,6 +63,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       });
 
       const payload = await readApiResponse<AuthResponse>(response);
+      await ensureBrowserSessionCookie(payload);
 
       if (!payload.emailVerified) {
         toast({

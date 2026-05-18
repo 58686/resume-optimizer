@@ -42,7 +42,9 @@ export async function POST(request: Request) {
       id: user.id,
       name: user.name,
       email: user.email,
-      emailVerified: Boolean(user.emailVerifiedAt)
+      emailVerified: Boolean(user.emailVerifiedAt),
+      sessionToken: token,
+      sessionExpiresAt: expiresAt.toISOString()
     });
 
     setSessionCookie(response, token, expiresAt, request);

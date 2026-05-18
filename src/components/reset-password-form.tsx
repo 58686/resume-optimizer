@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useToast } from "@/components/toast-provider";
 import { readApiResponse } from "@/lib/api-client";
+import { ensureBrowserSessionCookie } from "@/lib/browser-session";
 
 type ResetPasswordFormProps = {
   token: string | null;
@@ -16,6 +17,8 @@ type ResetPasswordResponse = {
   name: string;
   email: string;
   emailVerified: boolean;
+  sessionToken?: string;
+  sessionExpiresAt?: string;
 };
 
 function getPasswordStrength(password: string) {
@@ -67,6 +70,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
       });
 
       const payload = await readApiResponse<ResetPasswordResponse>(response);
+      await ensureBrowserSessionCookie(payload);
       toast({
         title: "密码已重置",
         description: "你已自动登录。"

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/toast-provider";
 import { readApiResponse } from "@/lib/api-client";
+import { ensureBrowserSessionCookie } from "@/lib/browser-session";
 
 type VerifyEmailPanelProps = {
   token: string | null;
@@ -19,6 +20,8 @@ type VerifyEmailResponse = {
   name: string;
   email: string;
   emailVerified: true;
+  sessionToken?: string;
+  sessionExpiresAt?: string;
 };
 
 type ResendVerificationResponse = {
@@ -59,7 +62,8 @@ export function VerifyEmailPanel({
           body: JSON.stringify({ token })
         });
 
-        await readApiResponse<VerifyEmailResponse>(response);
+        const payload = await readApiResponse<VerifyEmailResponse>(response);
+        await ensureBrowserSessionCookie(payload);
         setStatus("verified");
         setMessage("邮箱已验证。");
         toast({
