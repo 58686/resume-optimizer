@@ -255,7 +255,7 @@ function KeywordCoverageBar({ matched, missing }: { matched: number; missing: nu
   );
 }
 
-function DimensionScoreCards({ analysis, score }: { analysis: AnalysisResult; score: number | null }) {
+function DimensionScoreCards({ analysis }: { analysis: AnalysisResult }) {
   const total = analysis.matchedKeywords.length + analysis.missingKeywords.length;
   const kwPct = total > 0 ? Math.round((analysis.matchedKeywords.length / total) * 100) : 0;
   const sugLevel = analysis.suggestions.length <= 2 ? 90 : analysis.suggestions.length <= 4 ? 60 : 30;
@@ -365,7 +365,7 @@ export function ResultInteractions(props: ResultInteractionsProps) {
   return (
     <div className="space-y-6">
       {/* Dimension score cards */}
-      <DimensionScoreCards analysis={props.analysis} score={props.score} />
+      <DimensionScoreCards analysis={props.analysis} />
 
       {/* Action center */}
       <section className="animate-slide-up rounded-[2rem] border border-zinc-800 glass-panel p-6 backdrop-blur-sm">

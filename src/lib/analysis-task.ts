@@ -394,6 +394,36 @@ export async function ensureQueuedAnalysisTaskScheduled(taskId: string) {
   return { scheduled: true, reason: "enqueued" as const };
 }
 
+export async function scheduleQueuedAnalysisTask(taskId: string) {
+  try {
+    await enqueueAnalysisTask(taskId);
+    return { scheduled: true };
+  } catch (error) {
+    console.error("[analysis-task] failed to enqueue task", { taskId, error });
+    const message = "任务队列不可用，请稍后重试。";
+
+    await prisma.analysisTask.updateMany({
+      where: {
+        id: taskId,
+        status: "queued"
+      },
+      data: {
+        status: "failed",
+        progressStage: "failed",
+        progressMessage: message,
+        errorMessage: message,
+        finishedAt: new Date(),
+        processingToken: null
+      }
+    });
+
+    return {
+      scheduled: false,
+      message
+    };
+  }
+}
+
 export async function runAnalysisTask(taskId: string) {
   const claimedTask = await claimAnalysisTask(taskId);
 

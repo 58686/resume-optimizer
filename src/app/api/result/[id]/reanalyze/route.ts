@@ -1,15 +1,16 @@
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
-import { apiError, apiSuccess } from "@/lib/api-response";
+import { apiError, apiSuccess, apiValidationError } from "@/lib/api-response";
 import { requireCsrfProtection } from "@/lib/csrf";
 import { prisma } from "@/lib/prisma";
-import { processAnalysisTask } from "@/lib/analysis-task";
+import { scheduleQueuedAnalysisTask } from "@/lib/analysis-task";
+import { jobDescriptionSchema, resumeTextSchema } from "@/lib/request-schemas";
 
 export const runtime = "nodejs";
 
 const bodySchema = z.object({
-  resumeText: z.string().trim().min(50).max(30000),
-  jobDescription: z.string().trim().min(30).max(16000).optional()
+  resumeText: resumeTextSchema,
+  jobDescription: jobDescriptionSchema.optional()
 });
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -24,7 +25,17 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
 
   const { id } = await context.params;
-  const body = bodySchema.parse(await request.json());
+  let body: z.infer<typeof bodySchema>;
+
+  try {
+    body = bodySchema.parse(await request.json());
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return apiValidationError(error, "重新分析参数不合法。");
+    }
+
+    return apiError("重新分析参数不合法。", 400, "REANALYZE_INVALID");
+  }
 
   const result = await prisma.resumeAnalysis.findFirst({
     where: { id, userId: user.id },
@@ -74,20 +85,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
   });
 
-  try {
-    await processAnalysisTask(task.id);
-  } catch (error) {
-    await prisma.analysisTask.update({
-      where: { id: task.id },
-      data: {
-        status: "failed",
-        progressStage: "failed",
-        progressMessage: error instanceof Error ? error.message : "任务队列不可用，请稍后重试。",
-        errorMessage: error instanceof Error ? error.message : "任务队列不可用，请稍后重试。",
-        finishedAt: new Date()
-      }
-    });
-
+  const scheduled = await scheduleQueuedAnalysisTask(task.id);
+  if (!scheduled.scheduled) {
     return apiError("任务队列不可用，请稍后重试。", 503, "TASK_QUEUE_UNAVAILABLE");
   }
 

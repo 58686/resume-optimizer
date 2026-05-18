@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { apiError, apiSuccess, getErrorMessage } from "@/lib/api-response";
 import { requireCsrfProtection } from "@/lib/csrf";
-import { extractTextFromFile } from "@/lib/parser";
+import { extractTextFromResumeFile, validateResumeFile } from "@/lib/parser";
 import { prisma } from "@/lib/prisma";
 import { applyRateLimitHeaders, checkRateLimit } from "@/lib/rate-limit";
 import { deleteStoredFile, saveResumeFile } from "@/lib/storage";
@@ -45,10 +45,15 @@ export async function POST(request: Request) {
       );
     }
 
+    validateResumeFile(file);
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     // Extract text before writing to storage — parse failures won't leave orphaned files.
-    const resumeText = await extractTextFromFile(file);
+    const resumeText = await extractTextFromResumeFile({
+      fileName: file.name,
+      size: file.size,
+      buffer
+    });
 
     const stored = await saveResumeFile({
       userId: user.id,

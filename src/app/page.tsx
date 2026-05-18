@@ -10,15 +10,8 @@ export default async function HomePage() {
   if (!user) {
     return (
       <main className="min-h-screen px-6 py-20 text-white">
-        {/* Decorative background blobs */}
-        <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-          <div className="absolute -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-brand-gradient-start/20 blur-[100px]" />
-          <div className="absolute -right-20 top-20 h-[400px] w-[400px] rounded-full bg-brand-gradient-mid/20 blur-[100px]" />
-          <div className="absolute bottom-0 left-1/3 h-[300px] w-[600px] rounded-full bg-brand-gradient-end/20 blur-[100px]" />
-        </div>
-
-        <section className="animate-slide-up mx-auto max-w-6xl rounded-[2rem] glass-panel p-10 shadow-glow-lg relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+        <section className="animate-slide-up mx-auto max-w-6xl rounded-3xl glass-panel p-10 shadow-glow-lg relative overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--brand-accent)] to-transparent opacity-60" />
           <p className="mb-4 text-sm font-semibold uppercase tracking-[0.35em] text-zinc-400 relative z-10">AI Resume Optimizer</p>
           <h1 className="max-w-3xl text-5xl font-extrabold leading-[1.15] text-white relative z-10">
             对照目标岗位，<br />
@@ -47,7 +40,7 @@ export default async function HomePage() {
             {["AI 关键词匹配", "项目改写建议", "面试问答生成", "一键导出报告"].map((tag) => (
               <span
                 key={tag}
-                className="rounded-full border border-zinc-800 bg-zinc-900/80 px-4 py-2 text-xs font-medium text-zinc-300 shadow-sm"
+                className="rounded-full border border-[var(--surface-border)] bg-white/[0.06] px-4 py-2 text-xs font-medium text-[var(--text-secondary)] shadow-sm"
               >
                 {tag}
               </span>

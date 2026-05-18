@@ -8,6 +8,7 @@ import { getUserProviderConfigInput } from "@/lib/provider-configs";
 import { buildAnalyzeProviderConfigInput } from "@/lib/provider-profiles";
 import { prisma } from "@/lib/prisma";
 import { applyRateLimitHeaders, checkRateLimit, createRateLimitHeaders } from "@/lib/rate-limit";
+import { jobDescriptionSchema, providerConfigSchema, resumeTextSchema } from "@/lib/request-schemas";
 import { generateStructuredWithOpenAICompatible } from "@/lib/ai/shared";
 import {
   buildCategoryInterviewPrompt,
@@ -18,30 +19,10 @@ import type { InterviewPrepQuestion } from "@/types/analysis";
 
 export const runtime = "nodejs";
 
-const providerConfigSchema = z.object({
-  provider: z.enum(["openai", "openrouter", "compatible", "nvidia", "gemini", "anthropic"]),
-  protocol: z.enum(["responses", "chat_completions"]).optional(),
-  apiKeyMode: z.enum(["bearer", "api_key_header", "x_api_key_header"]).optional(),
-  apiKey: z.string().trim().max(500).optional(),
-  model: z.string().trim().max(200).optional(),
-  baseURL: z.string().trim().max(500).optional(),
-  siteUrl: z.string().trim().max(500).optional(),
-  appName: z.string().trim().max(100).optional(),
-  proxy: z.string().trim().max(500).optional()
-});
-
 const bodySchema = z
   .object({
-    resumeText: z
-      .string()
-      .trim()
-      .min(50, "简历内容至少需要 50 个字符。")
-      .max(30000, "简历内容过长，请精简后再试。"),
-    jobDescription: z
-      .string()
-      .trim()
-      .min(30, "职位描述至少需要 30 个字符。")
-      .max(16000, "职位描述过长，请仅保留核心职责和要求。"),
+    resumeText: resumeTextSchema,
+    jobDescription: jobDescriptionSchema,
     analysisId: z.string().trim().min(1).optional(),
     sessionId: z.string().trim().min(1).optional(),
     providerConfigId: z.string().trim().min(1).optional(),

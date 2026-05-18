@@ -23,10 +23,10 @@ type HistoryListProps = {
 };
 
 function getScoreBadgeClass(score: number | null) {
-  if (score === null) return "bg-zinc-800 text-zinc-300";
-  if (score >= 80) return "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400";
-  if (score >= 60) return "bg-amber-500/20 border border-amber-500/30 text-amber-400";
-  return "bg-red-500/20 border border-red-500/30 text-red-400";
+  if (score === null) return "border border-stone-200 bg-stone-100 text-stone-600";
+  if (score >= 80) return "border border-emerald-300 bg-emerald-50 text-emerald-700";
+  if (score >= 60) return "border border-amber-300 bg-amber-50 text-amber-700";
+  return "border border-red-300 bg-red-50 text-red-700";
 }
 
 function StarButton({ id, initialStarred }: { id: string; initialStarred: boolean }) {
@@ -59,8 +59,8 @@ function StarButton({ id, initialStarred }: { id: string; initialStarred: boolea
       disabled={isSubmitting}
       className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
         starred
-          ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
-          : "btn-secondary text-zinc-300"
+          ? "border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"
+          : "border border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100"
       }`}
     >
       {starred ? "★ 已标星" : "☆ 标星"}
@@ -92,13 +92,13 @@ function DeleteButton({ id, label }: { id: string; label: string }) {
   return (
     <div className="flex flex-col items-end gap-2">
       {isConfirming ? (
-        <div className="animate-scale-in rounded-2xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-right text-xs text-red-400">
+        <div className="animate-scale-in rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-right text-xs text-red-700">
           <p>确认删除&ldquo;{label}&rdquo;？</p>
           <div className="mt-2 flex justify-end gap-2">
-            <button type="button" onClick={() => setIsConfirming(false)} className="btn-secondary rounded-full px-3 py-1 text-zinc-300">
+            <button type="button" onClick={() => setIsConfirming(false)} className="rounded-full border border-stone-200 bg-white px-3 py-1 text-stone-700 hover:bg-stone-50">
               取消
             </button>
-            <button type="button" onClick={() => void handleDelete()} disabled={isDeleting} className="rounded-full border border-red-500/50 px-3 py-1 text-red-400 transition hover:bg-red-500/20">
+            <button type="button" onClick={() => void handleDelete()} disabled={isDeleting} className="rounded-full border border-red-300 px-3 py-1 text-red-700 transition hover:bg-red-100">
               {isDeleting ? "删除中..." : "确认删除"}
             </button>
           </div>
@@ -107,12 +107,12 @@ function DeleteButton({ id, label }: { id: string; label: string }) {
         <button
           type="button"
           onClick={() => setIsConfirming(true)}
-          className="rounded-full border border-red-500/30 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
+          className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100"
         >
           删除
         </button>
       )}
-      {error ? <p className="text-xs text-red-400">{error}</p> : null}
+      {error ? <p className="text-xs text-red-600">{error}</p> : null}
     </div>
   );
 }
@@ -145,10 +145,10 @@ export function HistoryList({ items, search, sort }: HistoryListProps) {
   return (
     <>
       {/* Search & filter bar */}
-      <form className="animate-slide-up delay-1 rounded-[2rem] border border-zinc-800 bg-zinc-900/50 p-5 backdrop-blur-sm">
+      <form className="animate-slide-up delay-1 rounded-[2rem] border border-[rgba(118,82,58,0.14)] bg-white/80 p-5 shadow-[0_18px_42px_rgba(118,82,58,0.10)] backdrop-blur-sm">
         <div className="grid gap-4 md:grid-cols-[1fr_180px_auto] md:items-end">
           <div>
-            <label htmlFor="search" className="block text-sm font-semibold text-zinc-300">
+            <label htmlFor="search" className="block text-sm font-bold text-[var(--text-primary)]">
               搜索
             </label>
             <input
@@ -156,18 +156,18 @@ export function HistoryList({ items, search, sort }: HistoryListProps) {
               name="search"
               defaultValue={search}
               placeholder="搜索文件名或职位描述关键词"
-              className="input-glow mt-2 block w-full rounded-2xl border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-300 placeholder:text-zinc-400"
+              className="mt-2 block w-full rounded-2xl border border-[rgba(118,82,58,0.16)] bg-white px-4 py-3 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--brand-gradient-mid)] focus:ring-4 focus:ring-orange-100"
             />
           </div>
           <div>
-            <label htmlFor="sort" className="block text-sm font-semibold text-zinc-300">
+            <label htmlFor="sort" className="block text-sm font-bold text-[var(--text-primary)]">
               排序
             </label>
             <select
               id="sort"
               name="sort"
               defaultValue={sort}
-              className="input-glow mt-2 block w-full rounded-2xl border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-300"
+              className="mt-2 block w-full rounded-2xl border border-[rgba(118,82,58,0.16)] bg-white px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand-gradient-mid)] focus:ring-4 focus:ring-orange-100"
             >
               <option value="latest">按最新时间</option>
               <option value="score">按匹配分</option>
@@ -179,14 +179,14 @@ export function HistoryList({ items, search, sort }: HistoryListProps) {
               应用
             </button>
             {hasFilters ? (
-              <Link href="/history" className="btn-secondary rounded-full px-5 py-3 text-sm font-semibold text-zinc-300">
+              <Link href="/history" className="rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-50">
                 清空
               </Link>
             ) : null}
             <button
               type="button"
               onClick={() => { setCompareMode((v) => !v); setSelectedIds([]); }}
-              className={`rounded-full px-5 py-3 text-sm font-semibold transition ${compareMode ? "btn-primary text-white" : "btn-secondary text-zinc-300"}`}
+              className={`rounded-full px-5 py-3 text-sm font-semibold transition ${compareMode ? "btn-primary text-white" : "border border-stone-200 bg-white text-stone-700 hover:bg-stone-50"}`}
             >
               {compareMode ? "退出对比" : "版本对比"}
             </button>
@@ -196,9 +196,9 @@ export function HistoryList({ items, search, sort }: HistoryListProps) {
 
       {/* Compare action bar */}
       {compareMode && (
-        <div className="animate-slide-up flex items-center justify-between rounded-2xl border border-zinc-700 bg-zinc-900/50 px-5 py-3">
-          <p className="text-sm text-zinc-400">
-            已选 <span className="font-bold text-white">{selectedIds.length}</span> / 2 条记录
+        <div className="animate-slide-up flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 shadow-sm">
+          <p className="text-sm font-medium text-amber-900">
+            已选 <span className="font-bold text-amber-700">{selectedIds.length}</span> / 2 条记录
           </p>
           <button
             type="button"
@@ -221,7 +221,7 @@ export function HistoryList({ items, search, sort }: HistoryListProps) {
                 <div className="flex items-center gap-3">
                   {compareMode && (
                     <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 text-xs font-bold transition ${
-                      isSelected ? "border-[var(--brand-accent)] bg-[var(--brand-accent)] text-white" : "border-zinc-600"
+                      isSelected ? "border-[var(--brand-gradient-mid)] bg-[var(--brand-gradient-mid)] text-white" : "border-stone-300 bg-white"
                     }`}>
                       {isSelected ? "✓" : ""}
                     </span>
@@ -230,19 +230,19 @@ export function HistoryList({ items, search, sort }: HistoryListProps) {
                     {item.score ?? "--"}
                   </div>
                   {item.starred ? (
-                    <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-400">已标星</span>
+                    <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">已标星</span>
                   ) : null}
                 </div>
-                <p className="mt-3 text-lg font-bold text-white">{item.fileName || "未命名文件"}</p>
-                <p className="mt-2 line-clamp-2 text-sm leading-6 text-zinc-400">{item.jobDescription}</p>
-                <p className="mt-3 text-xs text-zinc-400">{new Date(item.createdAt).toLocaleString("zh-CN")}</p>
+                <p className="mt-3 text-lg font-bold text-[var(--text-primary)]">{item.fileName || "未命名文件"}</p>
+                <p className="mt-2 line-clamp-2 text-sm font-medium leading-6 text-[var(--text-secondary)]">{item.jobDescription}</p>
+                <p className="mt-3 text-xs font-semibold text-[var(--text-muted)]">{new Date(item.createdAt).toLocaleString("zh-CN")}</p>
               </>
             );
             return (
               <article
                 key={item.id}
-                className={`accent-stripe card-hover animate-slide-up delay-${Math.min(index + 2, 6)} rounded-[2rem] border bg-zinc-900/50 p-6 backdrop-blur-sm transition ${
-                  compareMode && isSelected ? "border-[var(--brand-accent)] shadow-[0_0_0_1px_var(--brand-accent)]" : "border-zinc-800"
+                className={`accent-stripe card-hover animate-slide-up delay-${Math.min(index + 2, 6)} rounded-[2rem] border bg-white/85 p-6 shadow-[0_16px_38px_rgba(118,82,58,0.10)] backdrop-blur-sm transition ${
+                  compareMode && isSelected ? "border-[var(--brand-gradient-mid)] shadow-[0_0_0_1px_var(--brand-gradient-mid),0_18px_42px_rgba(217,141,104,0.18)]" : "border-[rgba(118,82,58,0.16)]"
                 }`}
               >
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -271,9 +271,9 @@ export function HistoryList({ items, search, sort }: HistoryListProps) {
           })}
         </div>
       ) : (
-        <section className="animate-slide-up delay-2 rounded-[2rem] border border-dashed border-zinc-700/60 bg-zinc-900/50 p-8 text-center backdrop-blur-sm">
-          <p className="text-lg font-semibold text-zinc-300">{emptyMessage}</p>
-          <p className="mt-2 text-sm text-zinc-400">
+        <section className="animate-slide-up delay-2 rounded-[2rem] border border-dashed border-[rgba(118,82,58,0.22)] bg-white/75 p-8 text-center backdrop-blur-sm">
+          <p className="text-lg font-semibold text-[var(--text-primary)]">{emptyMessage}</p>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">
             {hasFilters ? "可以调整搜索词或排序方式后再试。" : "完成第一次分析后，结果会自动显示在这里。"}
           </p>
           {!hasFilters ? (

@@ -46,14 +46,14 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
   });
 
   return (
-    <main className="min-h-screen px-6 py-12 text-white">
+    <main className="min-h-screen px-6 py-12 text-[var(--text-primary)]">
       <section className="mx-auto max-w-6xl space-y-6">
         <div className="animate-slide-up">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-zinc-400">History</p>
-          <h1 className="mt-2 text-4xl font-extrabold text-white">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--text-muted)]">History</p>
+          <h1 className="mt-2 text-4xl font-extrabold text-[var(--text-primary)]">
             历史<span className="text-brand-gradient">分析记录</span>
           </h1>
-          <p className="mt-3 text-sm text-zinc-400">展示当前账号下最近 50 条结果，支持搜索、排序和标星。</p>
+          <p className="mt-3 text-sm font-medium text-[var(--text-secondary)]">展示当前账号下最近 50 条结果，支持搜索、排序和标星。</p>
         </div>
         <HistoryList
           items={items.map((item) => ({ ...item, createdAt: item.createdAt.toISOString() }))}

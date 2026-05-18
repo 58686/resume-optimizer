@@ -2,8 +2,8 @@ import { z } from "zod";
 import {
   ensureQueuedAnalysisTaskScheduled,
   isAnalysisTaskTimedOut,
-  processAnalysisTask,
-  recoverTimedOutAnalysisTask
+  recoverTimedOutAnalysisTask,
+  scheduleQueuedAnalysisTask
 } from "@/lib/analysis-task";
 import type { AIProviderId } from "@/lib/ai/types";
 import { getCurrentUser } from "@/lib/auth";
@@ -17,6 +17,14 @@ import {
   encryptProviderConfigSnapshot
 } from "@/lib/provider-config-crypto";
 import { buildAnalyzeProviderConfigInput } from "@/lib/provider-profiles";
+import {
+  aiProviderSchema,
+  aiProtocolSchema,
+  apiKeyModeSchema,
+  jobDescriptionSchema,
+  providerConfigSchema,
+  resumeTextSchema
+} from "@/lib/request-schemas";
 import { parseStreamedAnalysis, stringifyStreamedAnalysis } from "@/lib/streamed-analysis";
 import { createEmptyPartialAnalysis } from "@/types/analysis";
 
@@ -27,16 +35,16 @@ type RouteContext = {
 };
 
 const taskEditSchema = z.object({
-  resumeText: z.string().trim().min(50, "简历内容至少需要 50 个字符。").max(30000, "简历内容过长，请精简后再试。"),
-  jobDescription: z.string().trim().min(30, "职位描述至少需要 30 个字符。").max(16000, "职位描述过长，请仅保留核心职责和要求。"),
-  provider: z.enum(["openai", "openrouter", "compatible", "nvidia", "gemini", "anthropic"]),
-  protocol: z.enum(["responses", "chat_completions"]).optional(),
-  apiKeyMode: z.enum(["bearer", "api_key_header", "x_api_key_header"]).optional(),
-  apiKey: z.string().trim().max(500, "API Key 过长。").optional(),
-  model: z.string().trim().max(200, "模型名称过长。").optional(),
-  baseURL: z.string().trim().max(500, "Base URL 过长。").optional(),
-  siteUrl: z.string().trim().max(500, "站点 URL 过长。").optional(),
-  appName: z.string().trim().max(100, "应用名称过长。").optional()
+  resumeText: resumeTextSchema,
+  jobDescription: jobDescriptionSchema,
+  provider: aiProviderSchema,
+  protocol: aiProtocolSchema.optional(),
+  apiKeyMode: apiKeyModeSchema.optional(),
+  apiKey: providerConfigSchema.shape.apiKey,
+  model: providerConfigSchema.shape.model,
+  baseURL: providerConfigSchema.shape.baseURL,
+  siteUrl: providerConfigSchema.shape.siteUrl,
+  appName: providerConfigSchema.shape.appName
 });
 
 function pickTaskEditValue<T extends string>(value?: T) {
@@ -218,20 +226,8 @@ export async function POST(request: Request, context: RouteContext) {
     }
   });
 
-  try {
-    await processAnalysisTask(retriedTask.id);
-  } catch (error) {
-    await prisma.analysisTask.update({
-      where: { id: retriedTask.id },
-      data: {
-        status: "failed",
-        progressStage: "failed",
-        progressMessage: error instanceof Error ? error.message : "任务队列不可用，请稍后重试。",
-        errorMessage: error instanceof Error ? error.message : "任务队列不可用，请稍后重试。",
-        finishedAt: new Date()
-      }
-    });
-
+  const retriedScheduled = await scheduleQueuedAnalysisTask(retriedTask.id);
+  if (!retriedScheduled.scheduled) {
     return apiError("任务队列不可用，请稍后重试。", 503, "TASK_QUEUE_UNAVAILABLE");
   }
 
@@ -305,20 +301,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       }
     });
 
-    try {
-      await processAnalysisTask(updatedTask.id);
-    } catch (error) {
-      await prisma.analysisTask.update({
-        where: { id: updatedTask.id },
-        data: {
-          status: "failed",
-          progressStage: "failed",
-          progressMessage: error instanceof Error ? error.message : "任务队列不可用，请稍后重试。",
-          errorMessage: error instanceof Error ? error.message : "任务队列不可用，请稍后重试。",
-          finishedAt: new Date()
-        }
-      });
-
+    const updatedScheduled = await scheduleQueuedAnalysisTask(updatedTask.id);
+    if (!updatedScheduled.scheduled) {
       return apiError("任务队列不可用，请稍后重试。", 503, "TASK_QUEUE_UNAVAILABLE");
     }
 

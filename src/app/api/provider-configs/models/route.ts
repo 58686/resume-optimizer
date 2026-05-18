@@ -4,20 +4,9 @@ import { apiError, apiSuccess, apiValidationError, getErrorMessage } from "@/lib
 import { requireCsrfProtection } from "@/lib/csrf";
 import { getUserProviderConfigInput } from "@/lib/provider-configs";
 import { listProviderModels, resolveProbeProviderConfig } from "@/lib/provider-probe";
+import { providerConfigSchema } from "@/lib/request-schemas";
 
 export const runtime = "nodejs";
-
-const providerConfigSchema = z.object({
-  provider: z.enum(["openai", "openrouter", "compatible", "nvidia", "gemini", "anthropic"]),
-  protocol: z.enum(["responses", "chat_completions"]).optional(),
-  apiKeyMode: z.enum(["bearer", "api_key_header", "x_api_key_header"]).optional(),
-  apiKey: z.string().trim().max(500, "API Key 过长。").optional(),
-  model: z.string().trim().max(200, "模型名称过长。").optional(),
-  baseURL: z.string().trim().max(500, "Base URL 过长。").optional(),
-  siteUrl: z.string().trim().max(500, "站点 URL 过长。").optional(),
-  appName: z.string().trim().max(100, "应用名称过长。").optional(),
-  proxy: z.string().trim().max(500, "代理地址过长。").optional()
-});
 
 const requestSchema = z
   .object({

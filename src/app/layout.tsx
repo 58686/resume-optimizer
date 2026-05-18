@@ -20,7 +20,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                var theme = localStorage.getItem('ui-theme') || 'aurora';
+                var theme = localStorage.getItem('ui-theme') || 'sunrise';
                 document.documentElement.setAttribute('data-theme', theme);
               } catch (e) {}
             `
