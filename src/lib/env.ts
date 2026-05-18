@@ -25,6 +25,7 @@ const apiKeyModeEnum = z.enum(["bearer", "api_key_header", "x_api_key_header"]);
 
 const envSchema = z.object({
   APP_ORIGIN: z.string().default(""),
+  AUTH_COOKIE_SECURE: z.enum(["auto", "true", "false"]).default("auto"),
   EMAIL_DELIVERY_MODE: z.enum(["console", "file"]).default("file"),
   EMAIL_FROM: z.string().default("no-reply@resume-optimizer.local"),
   EMAIL_OUTBOX_DIR: z.string().default("storage/email-outbox"),
@@ -80,6 +81,7 @@ const envSchema = z.object({
 
 const parsedEnv = envSchema.parse({
   APP_ORIGIN: process.env.APP_ORIGIN,
+  AUTH_COOKIE_SECURE: process.env.AUTH_COOKIE_SECURE,
   EMAIL_DELIVERY_MODE: process.env.EMAIL_DELIVERY_MODE,
   EMAIL_FROM: process.env.EMAIL_FROM,
   EMAIL_OUTBOX_DIR: process.env.EMAIL_OUTBOX_DIR,

@@ -24,6 +24,6 @@ export async function POST(request: Request) {
   }
 
   const response = apiSuccess({ loggedOut: true });
-  clearSessionCookie(response);
+  clearSessionCookie(response, request);
   return response;
 }

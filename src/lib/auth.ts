@@ -39,6 +39,40 @@ function hashSessionToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+function getFirstHeaderValue(value: string | null) {
+  return value?.split(",")[0]?.trim().toLowerCase() ?? "";
+}
+
+function shouldUseSecureCookie(request?: Request) {
+  if (env.AUTH_COOKIE_SECURE === "true") {
+    return true;
+  }
+
+  if (env.AUTH_COOKIE_SECURE === "false") {
+    return false;
+  }
+
+  const forwardedProtocol = getFirstHeaderValue(request?.headers.get("x-forwarded-proto") ?? null);
+
+  if (forwardedProtocol) {
+    return forwardedProtocol === "https";
+  }
+
+  if (request) {
+    return new URL(request.url).protocol === "https:";
+  }
+
+  if (env.APP_ORIGIN) {
+    try {
+      return new URL(env.APP_ORIGIN).protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
 function extractBearerToken(value: string | null) {
   if (!value) {
     return null;
@@ -68,25 +102,25 @@ export async function createSession(userId: string) {
   return { token, expiresAt };
 }
 
-export function setSessionCookie(response: NextResponse, token: string, expiresAt: Date) {
+export function setSessionCookie(response: NextResponse, token: string, expiresAt: Date, request?: Request) {
   response.cookies.set({
     name: SESSION_COOKIE_NAME,
     value: token,
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookie(request),
     expires: expiresAt,
     path: "/"
   });
 }
 
-export function clearSessionCookie(response: NextResponse) {
+export function clearSessionCookie(response: NextResponse, request?: Request) {
   response.cookies.set({
     name: SESSION_COOKIE_NAME,
     value: "",
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookie(request),
     expires: new Date(0),
     path: "/"
   });
@@ -121,7 +155,7 @@ async function refreshSessionIfNeeded(params: {
       value: params.token,
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: shouldUseSecureCookie(),
       expires: nextExpiresAt,
       path: "/"
     });

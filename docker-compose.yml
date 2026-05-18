@@ -56,6 +56,8 @@ services:
       # ── 按需修改以下变量 ──────────────────────────────────────────────────
       # 部署后的访问地址（默认本机）
       APP_ORIGIN: "${APP_ORIGIN:-http://localhost:3000}"
+      # Cookie Secure 策略：auto 会根据 HTTPS / X-Forwarded-Proto / APP_ORIGIN 判断；纯 HTTP 部署可设为 false
+      AUTH_COOKIE_SECURE: "${AUTH_COOKIE_SECURE:-auto}"
 
       # 加密密钥，生产环境请换成随机字符串（openssl rand -hex 32）
       ANALYSIS_TASK_ENCRYPTION_KEY: "${ANALYSIS_TASK_ENCRYPTION_KEY:-default-dev-key-change-in-production}"

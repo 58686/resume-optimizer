@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       emailVerified: Boolean(user.emailVerifiedAt)
     });
 
-    setSessionCookie(response, token, expiresAt);
+    setSessionCookie(response, token, expiresAt, request);
     return applyRateLimitHeaders(response, rateLimit);
   } catch (error) {
     if (error instanceof z.ZodError) {
